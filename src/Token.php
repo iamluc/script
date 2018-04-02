@@ -1,0 +1,75 @@
+<?php
+
+namespace Iamluc\Script;
+
+class Token
+{
+    public const T_STRING = 'string';
+    public const T_NUMBER = 'number';
+    public const T_TRUE = 'true';
+    public const T_FALSE = 'false';
+    public const T_NIL = 'nil';
+
+    public const T_IF = 'if';
+    public const T_THEN = 'then';
+    public const T_ELSIF = 'elsif';
+    public const T_ELSE = 'else';
+    public const T_END = 'end';
+
+    public const T_ASSIGN = 'assign';
+
+    public const T_NAME = 'variable name';
+
+    public const T_EOF = 'end of file';
+
+    private $type;
+    private $value;
+    private $position;
+
+    public function __construct($type, $value = null, $position = null)
+    {
+        $this->type = $type;
+        $this->value = $value;
+        $this->position = $position;
+    }
+
+    public function getType()
+    {
+        return $this->type;
+    }
+
+    public function getValue()
+    {
+        return $this->value;
+    }
+
+    public function getPosition()
+    {
+        return $this->position;
+    }
+
+    public function isScalar(): bool
+    {
+        return \in_array($this->type, [self::T_STRING, self::T_NUMBER, self::T_TRUE, self::T_FALSE, self::T_NIL], true);
+    }
+
+    public function getScalarValue()
+    {
+        if (!$this->isScalar()) {
+            throw new \LogicException(sprintf('Token of type "%s" is not a scalar.', $this->type));
+        }
+
+        switch ($this->type) {
+            case self::T_TRUE:
+                return true;
+
+            case self::T_FALSE:
+                return false;
+
+            case self::T_NIL:
+                return null;
+        }
+
+        return $this->value;
+    }
+}

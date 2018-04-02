@@ -1,0 +1,19 @@
+{
+    "name": "iamluc/script",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "iamluc",
+            "email": "luc@vieillescazes.net"
+        }
+    ],
+    "require": {},
+    "require-dev": {
+        "phpunit/phpunit": "^7.0",
+        "symfony/var-dumper": "^4.0"
+    },
+    "autoload": {
+        "psr-4": { "Iamluc\\Script\\": "src/" }
+    }
+}
