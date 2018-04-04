@@ -53,6 +53,11 @@ class Token
         return \in_array($this->type, (array) $types, true);
     }
 
+    public function isEOF(): bool
+    {
+        return self::T_EOF === $this->type;
+    }
+
     public function isScalar(): bool
     {
         return \in_array($this->type, [self::T_STRING, self::T_NUMBER, self::T_TRUE, self::T_FALSE, self::T_NIL], true);

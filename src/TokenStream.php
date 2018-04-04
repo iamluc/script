@@ -14,7 +14,7 @@ class TokenStream
         $this->lexer = $lexer;
     }
 
-    public function next($peek = true)
+    public function next($peek = true): Token
     {
         $nextPos = $this->position + 1;
         if (!isset($this->tokens[$nextPos])) {

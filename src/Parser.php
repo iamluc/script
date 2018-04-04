@@ -10,7 +10,7 @@ class Parser
 
         $nodes = [];
         while ($token = $stream->next(false)) {
-            if (Token::T_EOF === $token->getType()) {
+            if ($token->isEOF()) {
                 break;
             }
 
@@ -25,7 +25,7 @@ class Parser
         $token = $stream->next();
         $next = $stream->next(false);
 
-        if (Token::T_EOF === $token->getType()) {
+        if ($token->isEOF()) {
             throw new \LogicException('Unexptected end of file.');
         }
 
@@ -33,12 +33,12 @@ class Parser
             return new Node\ScalarNode($token->getScalarValue());
         }
 
-        if (Token::T_NAME === $token->getType() && Token::T_ASSIGN === $next->getType()) {
+        if ($token->is(Token::T_NAME) && $next->is(Token::T_ASSIGN)) {
             $stream->next(); // consume "="
             return $this->parseAssign($stream, $token);
         }
 
-        if (Token::T_IF === $token->getType()) {
+        if ($token->is(Token::T_IF)) {
             return $this->parseIf($stream);
         }
 
@@ -50,21 +50,19 @@ class Parser
         $condition = $this->parseCondition($stream);
 
         $token = $stream->next();
-        if (Token::T_THEN !== $token->getType()) {
+        if (!$token->is(Token::T_THEN)) {
             throw new \LogicException('Expected "then".');
         }
 
         $if = $this->parseStatement($stream);
 
         while (($token = $stream->next(false)) && $token->is([Token::T_ELSE, Token::T_ELSEIF])) {
-            $stream->next();
+            $stream->next(); // consume else/elseif
 
-            if (Token::T_ELSE === $token->getType()) {
+            if ($token->is(Token::T_ELSE)) {
                 $else = $this->parseStatement($stream);
-            } elseif (Token::T_ELSEIF === $token->getType()) {
-                $else = $this->parseIf($stream, false);
             } else {
-                $else = new Node\NoOperationNode();
+                $else = $this->parseIf($stream, false);
             }
 
             $if = new Node\ConditionalNode($condition, $if, $else);
@@ -72,7 +70,7 @@ class Parser
 
         if ($end) {
             $token = $stream->next();
-            if (Token::T_END !== $token->getType()) {
+            if (!$token->is(Token::T_END)) {
                 dump($token);
                 throw new \LogicException('Expected "end".');
             }
@@ -89,7 +87,7 @@ class Parser
             return new Node\ScalarNode($token->getScalarValue());
         }
 
-        if (Token::T_NAME === $token->getType()) {
+        if ($token->is(Token::T_NAME)) {
             return new Node\VariableNode($token->getValue());
         }
 
