@@ -6,7 +6,7 @@ class Parser
 {
     public function parse(string $script)
     {
-        $stream = new Lexer($script);
+        $stream = new TokenStream(new Lexer($script));
 
         $nodes = [];
         while ($token = $stream->next(false)) {
@@ -20,7 +20,7 @@ class Parser
         return new Node\CallNode('__main', $nodes);
     }
 
-    private function parseStatement(Lexer $stream): Node\Node
+    private function parseStatement(TokenStream $stream): Node\Node
     {
         $token = $stream->next();
         $next = $stream->next(false);
@@ -45,7 +45,7 @@ class Parser
         throw new \LogicException('Unable to parse.');
     }
 
-    private function parseIf(Lexer $stream, $end = true)
+    private function parseIf(TokenStream $stream, $end = true)
     {
         $condition = $this->parseCondition($stream);
 
@@ -81,7 +81,7 @@ class Parser
         return $if;
     }
 
-    private function parseCondition(Lexer $stream): Node\Node
+    private function parseCondition(TokenStream $stream): Node\Node
     {
         $token = $stream->next();
 
@@ -96,7 +96,7 @@ class Parser
         throw new \LogicException('Invalid condition.');
     }
 
-    private function parseAssign(Lexer $stream, Token $variable): Node\AssignNode
+    private function parseAssign(TokenStream $stream, Token $variable): Node\AssignNode
     {
         return new Node\AssignNode($variable->getValue(), $this->parseStatement($stream));
     }

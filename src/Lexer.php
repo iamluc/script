@@ -40,66 +40,48 @@ class Lexer
         return $tokens;
     }
 
-    public function next($peek = true)
-    {
-        $token = $this->getNext($peek);
-//        if ($peek) {
-//            dump($token);
-//        }
-
-        return $token;
-    }
-
-    private function getNext($peek = true)
+    public function next()
     {
         if ($this->cursor >= strlen($this->stream)) {
             return new Token(Token::T_EOF);
         }
 
         // Ignore spaces
-        $currentCursor = $this->cursor;
-        if ($token = $this->match('/(\s+)/A', true)) {
-            $next = $this->next(true);
-            if (!$peek) {
-                $this->cursor = $currentCursor;
-            }
-
-            return $next;
+        if ($token = $this->match('/(\s+)/A')) {
+            return $this->next();
         }
 
         // Control structures
-        if ($token = $this->match('/(if|then|elseif|else|end)\b/A', $peek)) {
+        if ($token = $this->match('/(if|then|elseif|else|end)\b/A')) {
             return new Token(self::$stringToToken[$token['match']], $token['match'], $token['cursor']);
         }
 
         // Operators
-        if ($token = $this->match('/(=)/A', $peek)) {
+        if ($token = $this->match('/(=)/A')) {
             return new Token(self::$stringToToken[$token['match']], $token['match'], $token['cursor']);
         }
 
         // Constants
-        if ($token = $this->match('/(true|false|nil)\b/Ai', $peek)) {
+        if ($token = $this->match('/(true|false|nil)\b/Ai')) {
             $constant = strtolower($token['match']);
             return new Token(self::$stringToToken[$constant], $constant, $token['cursor']);
         }
 
         // Variables
-        if ($token = $this->match('/([\w-_]+)/A', $peek)) {
+        if ($token = $this->match('/([\w-_]+)/A')) {
             return new Token(Token::T_NAME, $token['match'], $token['cursor']);
         }
 
         // Strings
-        if ($token = $this->match('/"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)"|\'([^\'\\\\]*(?:\\\\.[^\'\\\\]*)*)\'/As', $peek)) {
+        if ($token = $this->match('/"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)"|\'([^\'\\\\]*(?:\\\\.[^\'\\\\]*)*)\'/As')) {
             return new Token(Token::T_STRING, $token['match'], $token['cursor']);
         }
 
         throw new \LogicException("Unable to tokenize the stream.");
     }
 
-    private function match($regex, $peek)
+    private function match($regex)
     {
-//        dump($regex, $this->stream, $this->cursor);
-
         if (1 === preg_match($regex, $this->stream, $matches, 0, $this->cursor)) {
             $token = [
                 'size' => strlen($matches[0]),
@@ -108,9 +90,7 @@ class Lexer
                 'cursor' => $this->cursor,
             ];
 
-            if ($peek) {
-                $this->cursor += $token['size'];
-            }
+            $this->cursor += $token['size'];
 
             return $token;
         }
