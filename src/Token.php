@@ -12,7 +12,7 @@ class Token
 
     public const T_IF = 'if';
     public const T_THEN = 'then';
-    public const T_ELSIF = 'elsif';
+    public const T_ELSEIF = 'elseif';
     public const T_ELSE = 'else';
     public const T_END = 'end';
 
@@ -46,6 +46,11 @@ class Token
     public function getPosition()
     {
         return $this->position;
+    }
+
+    public function is($types): bool
+    {
+        return \in_array($this->type, (array) $types, true);
     }
 
     public function isScalar(): bool

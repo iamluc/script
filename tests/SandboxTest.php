@@ -29,10 +29,22 @@ EOS
         ], $sandbox->getVariables());
     }
 
-    public function testIfElse()
+    /**
+     * @dataProvider provideIf
+     */
+    public function testIf($script, $expected)
     {
         $parser = new Parser();
-        $node = $parser->parse(<<<EOS
+        $sandbox = new Sandbox();
+        $sandbox->eval($parser->parse($script));
+
+        $this->assertEquals($expected, $sandbox->getVariables());
+    }
+
+    public function provideIf()
+    {
+        yield [
+            <<<EOS
 if true then
     testA = "OK"
 else
@@ -45,14 +57,72 @@ else
 testB = "KO"
 end
 EOS
-        );
+            , [
+                'testA' => 'OK',
+                'testB' => 'KO',
+            ]
+        ];
 
-        $sandbox = new Sandbox();
-        $sandbox->eval($node);
+        yield [
+            <<<EOS
+if false then
+    val = "A"
+elseif true then
+    val = "B"
+end
+EOS
+            , [
+                'val' => 'B',
+            ]
+        ];
 
-        $this->assertEquals([
-            'testA' => 'OK',
-            'testB' => 'KO',
-        ], $sandbox->getVariables());
+        yield [
+            <<<EOS
+if false then
+    val = "A"
+elseif false then
+    val = "B"
+else
+    val = "C"
+end
+EOS
+            , [
+                'val' => 'C',
+            ]
+        ];
+
+        yield [
+            <<<EOS
+if false then
+    val = "A"
+elseif true then
+    val = "B"
+else
+    val = "C"
+end
+EOS
+            , [
+                'val' => 'B',
+            ]
+        ];
+
+        yield [
+            <<<EOS
+if false then
+    val = "A"
+elseif true then
+    if false then
+        val = "B-1"
+    else
+        val = "B-2"
+    end
+else
+    val = "C"
+end
+EOS
+            , [
+                'val' => 'B-2',
+            ]
+        ];
     }
 }

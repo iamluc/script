@@ -14,17 +14,16 @@ class Parser
                 break;
             }
 
-            $nodes[] = $this->parseExpression($stream);
+            $nodes[] = $this->parseStatement($stream);
         }
 
         return new Node\CallNode('__main', $nodes);
     }
 
-    private function parseExpression(Lexer $stream): Node\Node
+    private function parseStatement(Lexer $stream): Node\Node
     {
         $token = $stream->next();
         $next = $stream->next(false);
-//        dump("----", $token, $next);
 
         if (Token::T_EOF === $token->getType()) {
             throw new \LogicException('Unexptected end of file.');
@@ -40,13 +39,13 @@ class Parser
         }
 
         if (Token::T_IF === $token->getType()) {
-            return $this->parseIf($stream, $token);
+            return $this->parseIf($stream);
         }
 
         throw new \LogicException('Unable to parse.');
     }
 
-    private function parseIf(Lexer $stream)
+    private function parseIf(Lexer $stream, $end = true)
     {
         $condition = $this->parseCondition($stream);
 
@@ -55,22 +54,31 @@ class Parser
             throw new \LogicException('Expected "then".');
         }
 
-        $if = $this->parseExpression($stream);
+        $if = $this->parseStatement($stream);
 
-        $token = $stream->next();
-        if (Token::T_ELSE === $token->getType()) {
-            $else = $this->parseExpression($stream);
-        } else {
-            $else = new Node\NoOperationNode();
+        while (($token = $stream->next(false)) && $token->is([Token::T_ELSE, Token::T_ELSEIF])) {
+            $stream->next();
+
+            if (Token::T_ELSE === $token->getType()) {
+                $else = $this->parseStatement($stream);
+            } elseif (Token::T_ELSEIF === $token->getType()) {
+                $else = $this->parseIf($stream, false);
+            } else {
+                $else = new Node\NoOperationNode();
+            }
+
+            $if = new Node\ConditionalNode($condition, $if, $else);
         }
 
-        $token = $stream->next();
-        if (Token::T_END !== $token->getType()) {
-//            dump($token);
-            throw new \LogicException('Expected "end".');
+        if ($end) {
+            $token = $stream->next();
+            if (Token::T_END !== $token->getType()) {
+                dump($token);
+                throw new \LogicException('Expected "end".');
+            }
         }
 
-        return new Node\ConditionalNode($condition, $if, $else);
+        return $if;
     }
 
     private function parseCondition(Lexer $stream): Node\Node
@@ -90,6 +98,6 @@ class Parser
 
     private function parseAssign(Lexer $stream, Token $variable): Node\AssignNode
     {
-        return new Node\AssignNode($variable->getValue(), $this->parseExpression($stream));
+        return new Node\AssignNode($variable->getValue(), $this->parseStatement($stream));
     }
 }
