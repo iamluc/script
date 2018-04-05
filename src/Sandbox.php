@@ -9,7 +9,7 @@ class Sandbox
     public function eval(Node\BlockNode $main)
     {
         foreach ($main->getNodes() as $node) {
-            $this->process($node);
+            $this->evaluateNode($node);
         }
     }
 
@@ -18,62 +18,45 @@ class Sandbox
         return $this->variables;
     }
 
-    private function process(Node\Node $node)
-    {
-        if ($node instanceof Node\ScalarNode) {
-            return $node->getValue();
-        }
-
-        if ($node instanceof Node\AssignNode) {
-            return $this->processAssignNode($node);
-        }
-
-        if ($node instanceof Node\ConditionalNode) {
-            return $this->processConditionalNode($node);
-        }
-
-        if ($node instanceof Node\MathNode) {
-            return $this->evaluateMath($node);
-        }
-
-        throw new \LogicException(sprintf('Unable to process node of type %s', get_class($node)));
-    }
-
-    private function processConditionalNode(Node\ConditionalNode $node)
-    {
-        $value = $this->evaluateNode($node->getCondition());
-        $toProcess = $value ? $node->getIf() : $node->getElse();
-
-        return $this->process($toProcess);
-    }
-
-    private function processAssignNode(Node\AssignNode $node)
-    {
-        return $this->variables[$node->getVariableName()] = $this->process($node->getValue());
-    }
-
     private function evaluateNode(Node\Node $node)
     {
         if ($node instanceof Node\ScalarNode) {
             return $node->getValue();
         }
 
-        if ($node instanceof Node\VariableNode) {
-            return $this->variables[$node->getVariable()] ?? null;
+        if ($node instanceof Node\AssignNode) {
+            return $this->evaluateAssignNode($node);
         }
 
         if ($node instanceof Node\ComparisonNode) {
-            return $this->evaluateComparison($node);
+            return $this->evaluateComparisonNode($node);
+        }
+
+        if ($node instanceof Node\ConditionalNode) {
+            return $this->evaluateConditionalNode($node);
         }
 
         if ($node instanceof Node\MathNode) {
-            return $this->evaluateMath($node);
+            return $this->evaluateMathNode($node);
         }
 
-        throw new \LogicException(sprintf('Cannot evaluate node of type "%s"', get_class($node)));
+        throw new \LogicException(sprintf('Unable to evaluateNode node of type %s', get_class($node)));
     }
 
-    public function evaluateComparison(Node\ComparisonNode $comparison)
+    private function evaluateConditionalNode(Node\ConditionalNode $node)
+    {
+        $value = $this->evaluateNode($node->getCondition());
+        $toProcess = $value ? $node->getIf() : $node->getElse();
+
+        return $this->evaluateNode($toProcess);
+    }
+
+    private function evaluateAssignNode(Node\AssignNode $node)
+    {
+        return $this->variables[$node->getVariableName()] = $this->evaluateNode($node->getValue());
+    }
+
+    private function evaluateComparisonNode(Node\ComparisonNode $comparison)
     {
         switch ($comparison->getOperator()) {
             case '==':
@@ -83,10 +66,10 @@ class Sandbox
                 return $this->evaluateNode($comparison->getLeft()) !== $this->evaluateNode($comparison->getRight());
         }
 
-        throw new \LogicException(sprintf('Cannot evaluate comparison "%s"', $comparison->getOperator()));
+        throw new \LogicException(sprintf('Cannot evaluateNode comparison "%s"', $comparison->getOperator()));
     }
 
-    public function evaluateMath(Node\MathNode $comparison)
+    private function evaluateMathNode(Node\MathNode $comparison)
     {
         switch ($comparison->getOperator()) {
             case '+':
@@ -96,6 +79,6 @@ class Sandbox
                 return $this->evaluateNode($comparison->getLeft()) - $this->evaluateNode($comparison->getRight());
         }
 
-        throw new \LogicException(sprintf('Cannot evaluate math "%s"', $comparison->getOperator()));
+        throw new \LogicException(sprintf('Cannot evaluateNode math "%s"', $comparison->getOperator()));
     }
 }
