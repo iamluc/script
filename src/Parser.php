@@ -24,18 +24,18 @@ class Parser
             throw new \LogicException('Unexptected end of file.');
         }
 
-        if ($token->isScalar()) {
-            return new Node\ScalarNode($token->getScalarValue());
+        if ($token->is(Token::T_IF)) {
+            return $this->parseIf($stream);
         }
 
-        if ($token->is(Token::T_NAME) && $stream->nextIs(Token::T_ASSIGN)) {
+        if ($token->isVariable() && $stream->nextIs(Token::T_ASSIGN)) {
             $stream->peek(); // consume "="
 
             return $this->parseAssign($stream, $token);
         }
 
-        if ($token->is(Token::T_IF)) {
-            return $this->parseIf($stream);
+        if ($token->isScalar() || $token->isVariable()) {
+            return $this->parseExpression($stream, $token);
         }
 
         throw new \LogicException('Unable to parse.');
@@ -76,33 +76,33 @@ class Parser
 
     private function parseCondition(TokenStream $stream): Node\Node
     {
-        while ($stream->nextIsScalar() || $stream->nextIsVariable()) {
+        $left = $this->parseExpression($stream, $stream->peek());
 
-            // FIXME: we handle only:
-            // - scalar
-            // - variable
-            // - scalar operator scalar
-
-            $left = $stream->peek(); // consume scalar / variable
-
-            if ($stream->nextIs(Token::T_THEN)) {
-                return $this->convertToNode($left);
-            }
-
-            $operator = $stream->peek();
-            if (!$operator->isOperator()) {
-                throw new \LogicException('Expected an operator.');
-            }
-
-            $right = $stream->peek();
-            if (!$right->isScalar() && !$right->isVariable()) {
-                throw new \LogicException(sprintf('Expected a scalar or a variable. Got "%s"', $right->getType()));
-            }
-
-            return new Node\ComparisonNode($this->convertToNode($left), $operator->getValue(), $this->convertToNode($right));
+        if ($stream->nextIs(Token::T_THEN)) {
+            return $left;
         }
 
-        throw new \LogicException('Invalid condition.');
+        $operator = $stream->peek();
+        if (!$operator->isOperator()) {
+            throw new \LogicException('Expected an operator.');
+        }
+
+        $right = $this->parseExpression($stream, $stream->peek());
+
+        return new Node\ComparisonNode($left, $operator->getValue(), $right);
+    }
+
+    private function parseExpression(TokenStream $stream, Token $token)
+    {
+        $left = $this->convertToNode($token); // FIXME: check type ?
+        while ($stream->nextIs([Token::T_PLUS, Token::T_MINUS])) {
+            $operation = $stream->peek();
+            $right = $this->parseExpression($stream, $stream->peek());
+
+            $left = new Node\MathNode($left, $operation->getValue(), $right);
+        }
+
+        return $left;
     }
 
     private function parseAssign(TokenStream $stream, Token $variable): Node\AssignNode

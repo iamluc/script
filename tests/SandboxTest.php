@@ -124,5 +124,42 @@ EOS
                 'val' => 'B-2',
             ]
         ];
+
+        yield [
+            <<<EOS
+res = 2 + 3
+EOS
+            , [
+                'res' => '5',
+            ]
+        ];
+
+        yield [
+            <<<EOS
+if 2 + 3 == 5 then
+    res = true
+else
+    res = false
+end
+EOS
+            , [
+                'res' => true,
+            ]
+        ];
+
+        yield [
+            <<<EOS
+if 2 + 2 == 5 then
+    res = "KO"
+elseif 4-2 + 8 == 1 + 2-1 +3 +6-1 then 
+    res = "OK"
+else
+    res = "WHAT?"
+end
+EOS
+            , [
+                'res' => 'OK',
+            ]
+        ];
     }
 }

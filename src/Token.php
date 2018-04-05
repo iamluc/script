@@ -18,6 +18,9 @@ class Token
 
     public const T_ASSIGN = 'assign'; // =
 
+    public const T_PLUS = 'plus'; // +
+    public const T_MINUS = 'minus'; // +
+
     public const T_EQUAL = 'equal'; // ==
     public const T_NOT_EQUAL = 'not equal'; // ~=
 
@@ -91,6 +94,9 @@ class Token
 
             case self::T_NIL:
                 return null;
+
+            case self::T_NUMBER:
+                return (float) $this->value; // FIXME: float ?
         }
 
         return $this->value;

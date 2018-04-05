@@ -32,6 +32,10 @@ class Sandbox
             return $this->processConditionalNode($node);
         }
 
+        if ($node instanceof Node\MathNode) {
+            return $this->evaluateMath($node);
+        }
+
         throw new \LogicException(sprintf('Unable to process node of type %s', get_class($node)));
     }
 
@@ -62,6 +66,10 @@ class Sandbox
             return $this->evaluateComparison($node);
         }
 
+        if ($node instanceof Node\MathNode) {
+            return $this->evaluateMath($node);
+        }
+
         throw new \LogicException(sprintf('Cannot evaluate node of type "%s"', get_class($node)));
     }
 
@@ -76,5 +84,18 @@ class Sandbox
         }
 
         throw new \LogicException(sprintf('Cannot evaluate comparison "%s"', $comparison->getOperator()));
+    }
+
+    public function evaluateMath(Node\MathNode $comparison)
+    {
+        switch ($comparison->getOperator()) {
+            case '+':
+                return $this->evaluateNode($comparison->getLeft()) + $this->evaluateNode($comparison->getRight());
+
+            case '-':
+                return $this->evaluateNode($comparison->getLeft()) - $this->evaluateNode($comparison->getRight());
+        }
+
+        throw new \LogicException(sprintf('Cannot evaluate math "%s"', $comparison->getOperator()));
     }
 }
