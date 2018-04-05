@@ -6,7 +6,7 @@ class VariableNode extends Node
 {
     private $variable;
 
-    public function __construct($variable)
+    public function __construct(string $variable)
     {
         $this->variable = $variable;
     }

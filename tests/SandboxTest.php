@@ -45,13 +45,13 @@ EOS
     {
         yield [
             <<<EOS
-if true then
+if 1 == 1 then
     testA = "OK"
 else
     testA = "KO"
 end
 
-if false then 
+if 1 == 2 then 
 testB = "OK"
 else
 testB = "KO"
@@ -65,9 +65,9 @@ EOS
 
         yield [
             <<<EOS
-if false then
+if 1 == 2 then
     val = "A"
-elseif true then
+elseif 1 ~= 2 then
     val = "B"
 end
 EOS

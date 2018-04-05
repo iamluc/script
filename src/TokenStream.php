@@ -19,6 +19,7 @@ class TokenStream
         $nextPos = $this->position + 1;
         if (!isset($this->tokens[$nextPos])) {
             $this->tokens[$nextPos] = $this->lexer->next();
+//            dump($this->tokens[$nextPos]);
         }
 
         if ($peek) {
@@ -26,5 +27,25 @@ class TokenStream
         }
 
         return $this->tokens[$nextPos];
+    }
+
+    public function expect($types)
+    {
+        return $this->next(false)->is($types);
+    }
+
+    public function expectEOF()
+    {
+        return $this->next(false)->isEOF();
+    }
+
+    public function expectScalar()
+    {
+        return $this->next(false)->isScalar();
+    }
+
+    public function expectVariable()
+    {
+        return $this->next(false)->isVariable();
     }
 }

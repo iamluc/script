@@ -13,7 +13,7 @@ class Sandbox
         }
     }
 
-    public function getVariables()
+    public function getVariables(): array
     {
         return $this->variables;
     }
@@ -58,6 +58,23 @@ class Sandbox
             return $this->variables[$node->getVariable()] ?? null;
         }
 
+        if ($node instanceof Node\ComparisonNode) {
+            return $this->evaluateComparison($node);
+        }
+
         throw new \LogicException(sprintf('Cannot evaluate node of type "%s"', get_class($node)));
+    }
+
+    public function evaluateComparison(Node\ComparisonNode $comparison)
+    {
+        switch ($comparison->getOperator()) {
+            case '==':
+                return $this->evaluateNode($comparison->getLeft()) === $this->evaluateNode($comparison->getRight());
+
+            case '~=':
+                return $this->evaluateNode($comparison->getLeft()) !== $this->evaluateNode($comparison->getRight());
+        }
+
+        throw new \LogicException(sprintf('Cannot evaluate comparison "%s"', $comparison->getOperator()));
     }
 }

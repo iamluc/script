@@ -19,6 +19,8 @@ class Lexer
         'nil' => Token::T_NIL,
 
         '=' => Token::T_ASSIGN,
+        '==' => Token::T_EQUAL,
+        '~=' => Token::T_NOT_EQUAL,
     ];
 
     public function __construct(string $stream)
@@ -57,7 +59,7 @@ class Lexer
         }
 
         // Operators
-        if ($token = $this->match('/(=)/A')) {
+        if ($token = $this->match('/(==|~=|=)/A')) {
             return new Token(self::$stringToToken[$token['match']], $token['match'], $token['cursor']);
         }
 
@@ -67,8 +69,13 @@ class Lexer
             return new Token(self::$stringToToken[$constant], $constant, $token['cursor']);
         }
 
+        // Numbers
+        if ($token = $this->match('/([0-9]+)\b/A')) {
+            return new Token(Token::T_NUMBER, $token['match'], $token['cursor']);
+        }
+
         // Variables
-        if ($token = $this->match('/([\w-_]+)/A')) {
+        if ($token = $this->match('/([\w-_]+)\b/A')) {
             return new Token(Token::T_NAME, $token['match'], $token['cursor']);
         }
 

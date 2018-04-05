@@ -9,11 +9,7 @@ class Parser
         $stream = new TokenStream(new Lexer($script));
 
         $nodes = [];
-        while ($token = $stream->next(false)) {
-            if ($token->isEOF()) {
-                break;
-            }
-
+        while (!$stream->expectEOF()) {
             $nodes[] = $this->parseStatement($stream);
         }
 
@@ -23,7 +19,6 @@ class Parser
     private function parseStatement(TokenStream $stream): Node\Node
     {
         $token = $stream->next();
-        $next = $stream->next(false);
 
         if ($token->isEOF()) {
             throw new \LogicException('Unexptected end of file.');
@@ -33,7 +28,7 @@ class Parser
             return new Node\ScalarNode($token->getScalarValue());
         }
 
-        if ($token->is(Token::T_NAME) && $next->is(Token::T_ASSIGN)) {
+        if ($token->is(Token::T_NAME) && $stream->expect(Token::T_ASSIGN)) {
             $stream->next(); // consume "="
             return $this->parseAssign($stream, $token);
         }
@@ -56,8 +51,8 @@ class Parser
 
         $if = $this->parseStatement($stream);
 
-        while (($token = $stream->next(false)) && $token->is([Token::T_ELSE, Token::T_ELSEIF])) {
-            $stream->next(); // consume else/elseif
+        while ($stream->expect([Token::T_ELSE, Token::T_ELSEIF])) {
+            $token = $stream->next(); // consume else/elseif
 
             if ($token->is(Token::T_ELSE)) {
                 $else = $this->parseStatement($stream);
@@ -71,7 +66,6 @@ class Parser
         if ($end) {
             $token = $stream->next();
             if (!$token->is(Token::T_END)) {
-                dump($token);
                 throw new \LogicException('Expected "end".');
             }
         }
@@ -81,14 +75,30 @@ class Parser
 
     private function parseCondition(TokenStream $stream): Node\Node
     {
-        $token = $stream->next();
+        while ($stream->expectScalar() || $stream->expectVariable()) {
 
-        if ($token->isScalar()) {
-            return new Node\ScalarNode($token->getScalarValue());
-        }
+            // FIXME: we handle only:
+            // - scalar
+            // - variable
+            // - scalar operator scalar
 
-        if ($token->is(Token::T_NAME)) {
-            return new Node\VariableNode($token->getValue());
+            $left = $stream->next(); // consume scalar / variable
+
+            if ($stream->expect(Token::T_THEN)) {
+                return $this->convertToNode($left);
+            }
+
+            $operator = $stream->next();
+            if (!$operator->isOperator()) {
+                throw new \LogicException('Expected an operator.');
+            }
+
+            $right = $stream->next();
+            if (!$right->isScalar() && !$right->isVariable()) {
+                throw new \LogicException(sprintf('Expected a scalar or a variable. Got "%s"', $right->getType()));
+            }
+
+            return new Node\ComparisonNode($this->convertToNode($left), $operator->getValue(), $this->convertToNode($right));
         }
 
         throw new \LogicException('Invalid condition.');
@@ -97,5 +107,18 @@ class Parser
     private function parseAssign(TokenStream $stream, Token $variable): Node\AssignNode
     {
         return new Node\AssignNode($variable->getValue(), $this->parseStatement($stream));
+    }
+
+    private function convertToNode(Token $token): Node\Node
+    {
+        if ($token->isScalar()) {
+            return new Node\ScalarNode($token->getScalarValue());
+        }
+
+        if ($token->isVariable()) {
+            return new Node\VariableNode($token->getValue());
+        }
+
+        throw new \LogicException(sprintf('Cannot convert token of type "%s" to node.', $token->getType()));
     }
 }

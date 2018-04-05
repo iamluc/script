@@ -16,7 +16,10 @@ class Token
     public const T_ELSE = 'else';
     public const T_END = 'end';
 
-    public const T_ASSIGN = 'assign';
+    public const T_ASSIGN = 'assign'; // =
+
+    public const T_EQUAL = 'equal'; // ==
+    public const T_NOT_EQUAL = 'not equal'; // ~=
 
     public const T_NAME = 'variable name';
 
@@ -58,9 +61,19 @@ class Token
         return self::T_EOF === $this->type;
     }
 
+    public function isVariable(): bool
+    {
+        return self::T_NAME === $this->type;
+    }
+
     public function isScalar(): bool
     {
-        return \in_array($this->type, [self::T_STRING, self::T_NUMBER, self::T_TRUE, self::T_FALSE, self::T_NIL], true);
+        return $this->is([self::T_STRING, self::T_NUMBER, self::T_TRUE, self::T_FALSE, self::T_NIL]);
+    }
+
+    public function isOperator(): bool
+    {
+        return $this->is([self::T_EQUAL, self::T_NOT_EQUAL]);
     }
 
     public function getScalarValue()
