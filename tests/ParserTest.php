@@ -22,8 +22,7 @@ EOS
 );
 
         $this->assertDumpEquals(<<<EOD
-Iamluc\Script\Node\CallNode {
-  -name: "__main"
+Iamluc\Script\Node\BlockNode {
   -nodes: array:2 [
     0 => Iamluc\Script\Node\AssignNode {
       -var: "hello"
@@ -57,8 +56,7 @@ EOS
         );
 
         $this->assertDumpEquals(<<<EOD
-Iamluc\Script\Node\CallNode {
-  -name: "__main"
+Iamluc\Script\Node\BlockNode {
   -nodes: array:1 [
     0 => Iamluc\Script\Node\ConditionalNode {
       -condition: Iamluc\Script\Node\VariableNode {

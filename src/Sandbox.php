@@ -6,7 +6,7 @@ class Sandbox
 {
     private $variables = [];
 
-    public function eval(Node\CallNode $main)
+    public function eval(Node\BlockNode $main)
     {
         foreach ($main->getNodes() as $node) {
             $this->process($node);

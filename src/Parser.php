@@ -9,16 +9,16 @@ class Parser
         $stream = new TokenStream(new Lexer($script));
 
         $nodes = [];
-        while (!$stream->expectEOF()) {
+        while (!$stream->nextIsEOF()) {
             $nodes[] = $this->parseStatement($stream);
         }
 
-        return new Node\CallNode('__main', $nodes);
+        return new Node\BlockNode($nodes);
     }
 
     private function parseStatement(TokenStream $stream): Node\Node
     {
-        $token = $stream->next();
+        $token = $stream->peek();
 
         if ($token->isEOF()) {
             throw new \LogicException('Unexptected end of file.');
@@ -28,8 +28,9 @@ class Parser
             return new Node\ScalarNode($token->getScalarValue());
         }
 
-        if ($token->is(Token::T_NAME) && $stream->expect(Token::T_ASSIGN)) {
-            $stream->next(); // consume "="
+        if ($token->is(Token::T_NAME) && $stream->nextIs(Token::T_ASSIGN)) {
+            $stream->peek(); // consume "="
+
             return $this->parseAssign($stream, $token);
         }
 
@@ -44,15 +45,15 @@ class Parser
     {
         $condition = $this->parseCondition($stream);
 
-        $token = $stream->next();
+        $token = $stream->peek();
         if (!$token->is(Token::T_THEN)) {
             throw new \LogicException('Expected "then".');
         }
 
         $if = $this->parseStatement($stream);
 
-        while ($stream->expect([Token::T_ELSE, Token::T_ELSEIF])) {
-            $token = $stream->next(); // consume else/elseif
+        while ($stream->nextIs([Token::T_ELSE, Token::T_ELSEIF])) {
+            $token = $stream->peek(); // consume else/elseif
 
             if ($token->is(Token::T_ELSE)) {
                 $else = $this->parseStatement($stream);
@@ -64,7 +65,7 @@ class Parser
         }
 
         if ($end) {
-            $token = $stream->next();
+            $token = $stream->peek();
             if (!$token->is(Token::T_END)) {
                 throw new \LogicException('Expected "end".');
             }
@@ -75,25 +76,25 @@ class Parser
 
     private function parseCondition(TokenStream $stream): Node\Node
     {
-        while ($stream->expectScalar() || $stream->expectVariable()) {
+        while ($stream->nextIsScalar() || $stream->nextIsVariable()) {
 
             // FIXME: we handle only:
             // - scalar
             // - variable
             // - scalar operator scalar
 
-            $left = $stream->next(); // consume scalar / variable
+            $left = $stream->peek(); // consume scalar / variable
 
-            if ($stream->expect(Token::T_THEN)) {
+            if ($stream->nextIs(Token::T_THEN)) {
                 return $this->convertToNode($left);
             }
 
-            $operator = $stream->next();
+            $operator = $stream->peek();
             if (!$operator->isOperator()) {
                 throw new \LogicException('Expected an operator.');
             }
 
-            $right = $stream->next();
+            $right = $stream->peek();
             if (!$right->isScalar() && !$right->isVariable()) {
                 throw new \LogicException(sprintf('Expected a scalar or a variable. Got "%s"', $right->getType()));
             }

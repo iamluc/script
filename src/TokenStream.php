@@ -14,7 +14,17 @@ class TokenStream
         $this->lexer = $lexer;
     }
 
-    public function next($peek = true): Token
+    public function peek(): Token
+    {
+        return $this->forward(true);
+    }
+
+    public function next()
+    {
+        return $this->forward(false);
+    }
+
+    private function forward($peek)
     {
         $nextPos = $this->position + 1;
         if (!isset($this->tokens[$nextPos])) {
@@ -29,23 +39,23 @@ class TokenStream
         return $this->tokens[$nextPos];
     }
 
-    public function expect($types)
+    public function nextIs($types)
     {
-        return $this->next(false)->is($types);
+        return $this->next()->is($types);
     }
 
-    public function expectEOF()
+    public function nextIsEOF()
     {
-        return $this->next(false)->isEOF();
+        return $this->next()->isEOF();
     }
 
-    public function expectScalar()
+    public function nextIsScalar()
     {
-        return $this->next(false)->isScalar();
+        return $this->next()->isScalar();
     }
 
-    public function expectVariable()
+    public function nextIsVariable()
     {
-        return $this->next(false)->isVariable();
+        return $this->next()->isVariable();
     }
 }
