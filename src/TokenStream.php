@@ -39,9 +39,9 @@ class TokenStream
         return $this->tokens[$nextPos];
     }
 
-    public function expect($types)
+    public function expect($types): Token
     {
-        $this->peek()->expect($types);
+        return $this->peek()->expect($types);
     }
 
     public function nextIs($types): bool

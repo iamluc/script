@@ -37,12 +37,21 @@ class Parser
             throw new \LogicException('Unexptected end of file.');
         }
 
+        if ($token->is(Token::T_FUNCTION)) {
+            return $this->parseFunction($stream);
+        }
+
         if ($token->is(Token::T_IF)) {
             return $this->parseIf($stream);
         }
 
         if ($token->is(Token::T_WHILE)) {
             return $this->parseWhile($stream);
+        }
+
+        // Function call
+        if ($token->isVariable() && $stream->nextIs(Token::T_LEFT_PAREN)) {
+            return $this->parseCall($stream, $token);
         }
 
         if ($token->isVariable() && $stream->nextIs(Token::T_ASSIGN)) {
@@ -146,6 +155,27 @@ class Parser
         $right = $this->parseExpression($stream, $stream->peek());
 
         return new Node\ComparisonNode($left, $operator->getValue(), $right);
+    }
+
+    private function parseCall(TokenStream $stream, Token $name): Node\CallNode
+    {
+        $stream->expect(Token::T_LEFT_PAREN); // FIXME: handle arguments
+        $stream->expect(Token::T_RIGHT_PAREN);
+
+        return new Node\CallNode($name->getValue());
+    }
+
+    private function parseFunction(TokenStream $stream): Node\FunctionNode
+    {
+        $name = $stream->expect(Token::T_NAME);
+
+        $stream->expect(Token::T_LEFT_PAREN); // FIXME: handle arguments
+        $stream->expect(Token::T_RIGHT_PAREN);
+
+        $block = $this->parseBlock($stream, Token::T_END);
+        $stream->expect(Token::T_END);
+
+        return new Node\FunctionNode($name->getValue(), null, $block);
     }
 
     private function parseAssign(TokenStream $stream, Token $variable): Node\AssignNode

@@ -5,6 +5,7 @@ namespace Iamluc\Script;
 class Sandbox
 {
     private $variables = [];
+    private $functions = [];
 
     public function eval(Node\BlockNode $main)
     {
@@ -60,6 +61,14 @@ class Sandbox
             return $this->evaluateMathNode($node);
         }
 
+        if ($node instanceof Node\FunctionNode) {
+            return $this->evaluateFunctionNode($node);
+        }
+
+        if ($node instanceof Node\CallNode) {
+            return $this->evaluateCallNode($node);
+        }
+
         throw new \LogicException(sprintf('Unable to evaluateNode node of type %s', get_class($node)));
     }
 
@@ -88,6 +97,22 @@ class Sandbox
     private function evaluateAssignNode(Node\AssignNode $node)
     {
         return $this->variables[$node->getVariableName()] = $this->evaluateNode($node->getValue());
+    }
+
+    private function evaluateFunctionNode(Node\FunctionNode $node)
+    {
+        $this->functions[$node->getName()] = $node;
+    }
+
+    private function evaluateCallNode(Node\CallNode $node)
+    {
+        if (!isset($this->functions[$node->getFunctionName()])) {
+            throw new \LogicException(sprintf('Function "%s" is not defined.', $node->getFunctionName()));
+        }
+
+        $function = $this->functions[$node->getFunctionName()];
+
+        return $this->evaluateNode($function->getBlock());
     }
 
     private function evaluateComparisonNode(Node\ComparisonNode $comparison)

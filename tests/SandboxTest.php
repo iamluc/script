@@ -291,4 +291,34 @@ EOS
             ]
         ];
     }
+
+    /**
+     * @dataProvider provideFunction
+     */
+    public function testFunction($script, $expected)
+    {
+        $parser = new Parser();
+        $sandbox = new Sandbox();
+        $sandbox->eval($parser->parse($script));
+
+        $this->assertEquals($expected, $sandbox->getVariables());
+    }
+
+    public function provideFunction()
+    {
+        yield [
+            <<<EOS
+res = 0
+
+function test()
+    res = "test func"
+end
+
+test()
+EOS
+            , [
+                'res' => 'test func',
+            ]
+        ];
+    }
 }

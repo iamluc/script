@@ -10,6 +10,8 @@ class Token
     public const T_FALSE = 'false';
     public const T_NIL = 'nil';
 
+    public const T_FUNCTION = 'function';
+
     public const T_IF = 'if';
     public const T_THEN = 'then';
     public const T_ELSEIF = 'elseif';
@@ -32,7 +34,7 @@ class Token
     public const T_LEFT_PAREN = 'left parenthesis';     // (
     public const T_RIGHT_PAREN = 'right parenthesis';   // )
 
-    public const T_NAME = 'variable name';
+    public const T_NAME = 'name';
 
     public const T_EOF = 'end of file';
 
@@ -62,11 +64,13 @@ class Token
         return $this->position;
     }
 
-    public function expect($types)
+    public function expect($types): self
     {
         if (!$this->is($types)) {
             throw new \LogicException(sprintf('Expected "%s", got "%s"', implode(', ', (array) $types), $this->getType()));
         }
+
+        return $this;
     }
 
     public function is($types): bool
