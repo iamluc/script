@@ -14,13 +14,15 @@ class SandboxTest extends TestCase
     /**
      * @dataProvider provideExpression
      */
-    public function testExpression($script, $expected)
+    public function testExpression($script, $expected, $autoReturn = true)
     {
         $parser = new Parser();
         $sandbox = new Sandbox();
-        $sandbox->eval($parser->parse('res = '.$script));
 
-        $this->assertEquals($expected, $sandbox->getVariables()['res']);
+        $script = $autoReturn ? 'return '.$script : $script;
+        $sandbox->eval($parser->parse($script));
+
+        $this->assertEquals($expected, $sandbox->getResult());
     }
 
     public function provideExpression()
@@ -40,18 +42,18 @@ class SandboxTest extends TestCase
         yield [
             <<<EOS
 mult = 10
-res = 5 - 3 * mult +15 + 5
+return 5 - 3 * mult +15 + 5
 EOS
-            , -5,
+            , -5, false
         ];
 
         yield [
             <<<EOS
 a = -2
 b = -3
-res = a * b
+return a * b
 EOS
-            , 6
+            , 6, false
         ];
     }
 
@@ -64,7 +66,7 @@ EOS
         $sandbox = new Sandbox();
         $sandbox->eval($parser->parse($script));
 
-        $this->assertEquals($expected, $sandbox->getVariables());
+        $this->assertEquals($expected, $sandbox->getGlobals());
     }
 
     public function provideAssign()
@@ -111,7 +113,7 @@ EOS
         $sandbox = new Sandbox();
         $sandbox->eval($parser->parse($script));
 
-        $this->assertEquals($expected, $sandbox->getVariables());
+        $this->assertEquals($expected, $sandbox->getGlobals());
     }
 
     public function provideIf()
@@ -271,7 +273,7 @@ EOS
         $sandbox = new Sandbox();
         $sandbox->eval($parser->parse($script));
 
-        $this->assertEquals($expected, $sandbox->getVariables());
+        $this->assertEquals($expected, $sandbox->getGlobals());
     }
 
     public function provideWhile()
@@ -301,7 +303,7 @@ EOS
         $sandbox = new Sandbox();
         $sandbox->eval($parser->parse($script));
 
-        $this->assertEquals($expected, $sandbox->getVariables());
+        $this->assertEquals($expected, $sandbox->getGlobals());
     }
 
     public function provideFunction()
@@ -318,6 +320,18 @@ test()
 EOS
             , [
                 'res' => 'test func',
+            ]
+        ];
+        yield [
+            <<<EOS
+function test()
+    return 8
+end
+
+res = 12 + test()
+EOS
+            , [
+                'res' => 20,
             ]
         ];
     }

@@ -2,21 +2,39 @@
 
 namespace Iamluc\Script;
 
+use Iamluc\Script\Exception\ReturnException;
+
 class Sandbox
 {
-    private $variables = [];
-    private $functions = [];
+    /** @var Scope */
+    private $globalScope;
 
     public function eval(Node\BlockNode $main)
     {
-        foreach ($main->getNodes() as $node) {
-            $this->evaluateNode($node);
-        }
+        $this->globalScope = new Scope();
+
+        $this->evaluateBlockNode($main);
     }
 
-    public function getVariables(): array
+    public function getGlobals(): array
     {
-        return $this->variables;
+        return $this->globalScope->getVariables();
+    }
+
+    public function getResult()
+    {
+        return $this->globalScope->getResult();
+    }
+
+    private function evaluateBlockNode(Node\BlockNode $block)
+    {
+        foreach ($block->getNodes() as $node) { // FIXME: create local scope
+            try {
+                $this->evaluateNode($node);
+            } catch (ReturnException $return) {
+                return $return->getValue();
+            }
+        }
     }
 
     private function evaluateNode(Node\Node $node)
@@ -26,11 +44,7 @@ class Sandbox
         }
 
         if ($node instanceof Node\VariableNode) {
-            if (array_key_exists($node->getVariable(), $this->variables)) {
-                return $this->variables[$node->getVariable()];
-            }
-
-            throw new \LogicException(sprintf('Unknown variable "%s"', $this->getVariables()));
+            return $this->globalScope->getVariable($node->getVariable());
         }
 
         if ($node instanceof Node\BlockNode) {
@@ -69,14 +83,11 @@ class Sandbox
             return $this->evaluateCallNode($node);
         }
 
-        throw new \LogicException(sprintf('Unable to evaluateNode node of type %s', get_class($node)));
-    }
-
-    private function evaluateBlockNode(Node\BlockNode $block)
-    {
-        foreach ($block->getNodes() as $node) {
-            $this->evaluateNode($node);
+        if ($node instanceof Node\ReturnNode) {
+            throw new ReturnException($this->evaluateReturnNode($node));
         }
+
+        throw new \LogicException(sprintf('Unable to evaluateNode node of type %s', get_class($node)));
     }
 
     private function evaluateConditionalNode(Node\ConditionalNode $node)
@@ -96,23 +107,25 @@ class Sandbox
 
     private function evaluateAssignNode(Node\AssignNode $node)
     {
-        return $this->variables[$node->getVariableName()] = $this->evaluateNode($node->getValue());
+        return $this->globalScope->setVariable($node->getVariableName(), $this->evaluateNode($node->getValue()));
     }
 
     private function evaluateFunctionNode(Node\FunctionNode $node)
     {
-        $this->functions[$node->getName()] = $node;
+        $this->globalScope->setFunction($node->getName(), $node);
     }
 
     private function evaluateCallNode(Node\CallNode $node)
     {
-        if (!isset($this->functions[$node->getFunctionName()])) {
-            throw new \LogicException(sprintf('Function "%s" is not defined.', $node->getFunctionName()));
-        }
+        $function = $this->globalScope->getFunction($node->getFunctionName());
+        $this->evaluateNode($function->getBlock());
 
-        $function = $this->functions[$node->getFunctionName()];
+        return $this->globalScope->getResult();
+    }
 
-        return $this->evaluateNode($function->getBlock());
+    private function evaluateReturnNode(Node\ReturnNode $node)
+    {
+        $this->globalScope->setResult($this->evaluateNode($node->getValue()));
     }
 
     private function evaluateComparisonNode(Node\ComparisonNode $comparison)

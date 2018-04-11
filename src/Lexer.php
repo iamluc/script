@@ -9,6 +9,7 @@ class Lexer
 
     private static $stringToToken = [
         'function' => Token::T_FUNCTION,
+        'return' => Token::T_RETURN,
 
         'if' => Token::T_IF,
         'then' => Token::T_THEN,
@@ -67,7 +68,7 @@ class Lexer
         }
 
         // Control structures, function
-        if ($token = $this->match('/(if|then|elseif|else|end|while|do|function)\b/A')) {
+        if ($token = $this->match('/(if|then|elseif|else|end|while|do|function|return)\b/A')) {
             return new Token(self::$stringToToken[$token['match']], $token['match'], $token['cursor']);
         }
 

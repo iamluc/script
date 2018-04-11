@@ -48,7 +48,7 @@ EOS
         $this->assertDumpEquals(<<<EOD
 array:7 [
   0 => Iamluc\Script\Token {
-    -type: "variable name"
+    -type: "name"
     -value: "hello"
     -position: 0
   }
@@ -63,7 +63,7 @@ array:7 [
     -position: 8
   }
   3 => Iamluc\Script\Token {
-    -type: "variable name"
+    -type: "name"
     -value: "world"
     -position: 16
   }
@@ -106,7 +106,7 @@ array:12 [
     -position: 0
   }
   1 => Iamluc\Script\Token {
-    -type: "variable name"
+    -type: "name"
     -value: "toto"
     -position: 3
   }
@@ -116,7 +116,7 @@ array:12 [
     -position: 8
   }
   3 => Iamluc\Script\Token {
-    -type: "variable name"
+    -type: "name"
     -value: "res"
     -position: 17
   }
@@ -136,7 +136,7 @@ array:12 [
     -position: 28
   }
   7 => Iamluc\Script\Token {
-    -type: "variable name"
+    -type: "name"
     -value: "res"
     -position: 37
   }

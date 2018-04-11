@@ -26,7 +26,6 @@ class Parser
         }
 
         return new Node\BlockNode($nodes);
-
     }
 
     private function parseStatement(TokenStream $stream): Node\Node
@@ -49,6 +48,10 @@ class Parser
             return $this->parseWhile($stream);
         }
 
+        if ($token->is(Token::T_RETURN)) { // FIXME: avoid repetition "return return true"
+            return $this->parseReturn($stream);
+        }
+
         // Function call
         if ($token->isVariable() && $stream->nextIs(Token::T_LEFT_PAREN)) {
             return $this->parseCall($stream, $token);
@@ -63,6 +66,7 @@ class Parser
         return $this->parseExpression($stream, $token);
     }
 
+    // FIXME: handle assignments in expression
     private function parseExpression(TokenStream $stream, Token $token, $precedence = 0)
     {
         switch ($token->getType()) {
@@ -81,9 +85,15 @@ class Parser
 
             default:
                 if (!$token->isScalar() && !$token->isVariable()) {
-                    throw new \LogicException(sprintf('Expected a scalar or a variable as start of the expression. Got "%s"', $token->getType()));
+                    throw new \LogicException(sprintf('Expected a scalar, a variable or a function call as start of the expression. Got "%s"', $token->getType()));
                 }
-                $left = $this->convertToNode($token);
+
+                // Function call
+                if ($token->isVariable() && $stream->nextIs(Token::T_LEFT_PAREN)) {
+                    $left = $this->parseCall($stream, $token);
+                } else {
+                    $left = $this->convertToNode($token);
+                }
         }
 
         while (($next = $stream->next())
@@ -176,6 +186,11 @@ class Parser
         $stream->expect(Token::T_END);
 
         return new Node\FunctionNode($name->getValue(), null, $block);
+    }
+
+    private function parseReturn(TokenStream $stream): Node\ReturnNode
+    {
+        return new Node\ReturnNode($this->parseStatement($stream));
     }
 
     private function parseAssign(TokenStream $stream, Token $variable): Node\AssignNode

@@ -11,6 +11,7 @@ class Token
     public const T_NIL = 'nil';
 
     public const T_FUNCTION = 'function';
+    public const T_RETURN = 'return';
 
     public const T_IF = 'if';
     public const T_THEN = 'then';

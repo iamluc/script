@@ -1,0 +1,54 @@
+<?php
+
+namespace Iamluc\Script;
+
+class Scope
+{
+    private $variables = [];
+    private $functions = [];
+    private $result;
+
+    public function setVariable($name, $value)
+    {
+        return $this->variables[$name] = $value;
+    }
+
+    public function getVariable($name)
+    {
+        return $this->variables[$name] ?? null;
+    }
+
+    public function getVariables(): array
+    {
+        return $this->variables;
+    }
+
+    public function setFunction($name, Node\FunctionNode $node)
+    {
+        $this->functions[$name] = $node;
+    }
+
+    public function getFunction($name): Node\FunctionNode
+    {
+        if (!isset($this->functions[$name])) {
+            throw new \LogicException(sprintf('Function "%s" is not defined.', $name));
+        }
+
+        return $this->functions[$name];
+    }
+
+    public function getFunctions(): array
+    {
+        return $this->functions;
+    }
+
+    public function setResult($value)
+    {
+        $this->result = $value;
+    }
+
+    public function getResult()
+    {
+        return $this->result;
+    }
+}
