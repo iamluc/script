@@ -48,10 +48,7 @@ class Parser
     {
         $condition = $this->parseCondition($stream);
 
-        $token = $stream->peek();
-        if (!$token->is(Token::T_THEN)) {
-            throw new \LogicException('Expected "then".');
-        }
+        $stream->expect(Token::T_THEN);
 
         $if = $this->parseStatement($stream);
 
@@ -68,10 +65,7 @@ class Parser
         }
 
         if ($end) {
-            $token = $stream->peek();
-            if (!$token->is(Token::T_END)) {
-                throw new \LogicException('Expected "end".');
-            }
+            $stream->expect(Token::T_END);
         }
 
         return $if;
@@ -87,7 +81,7 @@ class Parser
 
         $operator = $stream->peek();
         if (!$operator->isOperator()) {
-            throw new \LogicException('Expected an operator.');
+            throw new \LogicException(sprintf('Expected an operator, got "%s".', $operator->getType()));
         }
 
         $right = $this->parseExpression($stream, $stream->peek());
@@ -98,6 +92,11 @@ class Parser
     private function parseExpression(TokenStream $stream, Token $token, $precedence = 0)
     {
         switch ($token->getType()) {
+            case Token::T_LEFT_PAREN:
+                $left = $this->parseExpression($stream, $stream->peek());
+                $stream->expect((Token::T_RIGHT_PAREN));
+                break;
+
             case Token::T_MINUS: // negative
                 $left = new Node\NegativeNode($this->parseExpression($stream, $stream->peek(), 100));
                 break;
@@ -107,6 +106,9 @@ class Parser
                 // no break
 
             default:
+                if (!$token->isScalar() && !$token->isVariable()) {
+                    throw new \LogicException(sprintf('Expected a scalar or a variable as start of the expression. Got "%s"', $token->getType()));
+                }
                 $left = $this->convertToNode($token);
         }
 

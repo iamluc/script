@@ -18,22 +18,57 @@ class SandboxTest extends TestCase
     {
         $parser = new Parser();
         $sandbox = new Sandbox();
+        $sandbox->eval($parser->parse('res = '.$script));
+
+        $this->assertEquals($expected, $sandbox->getVariables()['res']);
+    }
+
+    public function provideExpression()
+    {
+        yield ['123', 123];
+        yield ['2 + 8 -1', 9];
+        yield ['4 * 5', 20];
+        yield ['10 + 2 * 2 * 3 / 4', 13];
+        yield ['4*5 +2/2 -5', 16];
+        yield ['-2 * 10 + 5', -15];
+        yield ['+10 - 3*4', -2];
+        yield ['(+10 - 3)*4', 28];
+        yield ['10* ((10*5) - 1)', 490];
+        yield ['5 / (4+1) * 6 + 3 * 2 * 2', 18];
+        yield ['-5 - (-3-1)', -1];
+
+        yield [
+            <<<EOS
+mult = 10
+res = 5 - 3 * mult +15 + 5
+EOS
+            , -5,
+        ];
+
+        yield [
+            <<<EOS
+a = -2
+b = -3
+res = a * b
+EOS
+            , 6
+        ];
+    }
+
+    /**
+     * @dataProvider provideAssign
+     */
+    public function testAssign($script, $expected)
+    {
+        $parser = new Parser();
+        $sandbox = new Sandbox();
         $sandbox->eval($parser->parse($script));
 
         $this->assertEquals($expected, $sandbox->getVariables());
     }
 
-    public function provideExpression()
+    public function provideAssign()
     {
-        yield [
-            <<<EOS
-abc = 123
-EOS
-            , [
-                'abc' => 123,
-            ]
-        ];
-
         yield [
             <<<EOS
 hello = "Salut"
@@ -47,70 +82,22 @@ EOS
 
         yield [
             <<<EOS
-val = 2 + 8 -1
+abc = def = 456
 EOS
             , [
-                'val' => 9,
+                'abc' => 456,
+                'def' => 456,
             ]
         ];
 
         yield [
             <<<EOS
-val = 4 * 5
+abc = def = 456 + 4
+abc = false
 EOS
             , [
-                'val' => 20,
-            ]
-        ];
-
-        yield [
-            <<<EOS
-val = 4*5 +2/2 -5
-EOS
-            , [
-                'val' => 16,
-            ]
-        ];
-
-        yield [
-            <<<EOS
-mult = 10
-val = 5 - 3 * mult +15 + 5
-EOS
-            , [
-                'val' => -5,
-                'mult' => 10,
-            ]
-        ];
-
-        yield [
-            <<<EOS
-a = -2
-b = -3
-val = a * b
-EOS
-            , [
-                'a' => -2,
-                'b' => -3,
-                'val' => 6,
-            ]
-        ];
-
-        yield [
-            <<<EOS
-val = -2 * 10 + 5
-EOS
-            , [
-                'val' => -15,
-            ]
-        ];
-
-        yield [
-            <<<EOS
-val = +10 - 3*4
-EOS
-            , [
-                'val' => -2,
+                'abc' => false,
+                'def' => 460,
             ]
         ];
     }
@@ -235,6 +222,23 @@ else
 end
 EOS
             , [
+                'res' => 'OK',
+            ]
+        ];
+
+        yield [
+            <<<EOS
+val = 8
+if (2 + 4) / 2 == (val + 1) / 3 then
+    res = "OK"
+elseif false then 
+    res = "KO"
+else
+    res = "WHAT?"
+end
+EOS
+            , [
+                'val' => 8,
                 'res' => 'OK',
             ]
         ];

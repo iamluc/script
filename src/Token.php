@@ -16,15 +16,18 @@ class Token
     public const T_ELSE = 'else';
     public const T_END = 'end';
 
-    public const T_ASSIGN = 'assign';       // =
+    public const T_ASSIGN = 'assign';                   // =
 
-    public const T_PLUS = 'plus';           // +
-    public const T_MINUS = 'minus';         // -
-    public const T_STAR = 'star';           // *
-    public const T_SLASH = 'slash';         // /
+    public const T_PLUS = 'plus';                       // +
+    public const T_MINUS = 'minus';                     // -
+    public const T_STAR = 'star';                       // *
+    public const T_SLASH = 'slash';                     // /
 
-    public const T_EQUAL = 'equal';         // ==
-    public const T_NOT_EQUAL = 'not equal'; // ~=
+    public const T_EQUAL = 'equal';                     // ==
+    public const T_NOT_EQUAL = 'not equal';             // ~=
+
+    public const T_LEFT_PAREN = 'left parenthesis';     // (
+    public const T_RIGHT_PAREN = 'right parenthesis';   // )
 
     public const T_NAME = 'variable name';
 
@@ -54,6 +57,13 @@ class Token
     public function getPosition()
     {
         return $this->position;
+    }
+
+    public function expect($types)
+    {
+        if (!$this->is($types)) {
+            throw new \LogicException(sprintf('Expected "%s", got "%s"', implode(', ', (array) $types), $this->getType()));
+        }
     }
 
     public function is($types): bool

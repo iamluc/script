@@ -26,6 +26,9 @@ class Lexer
         '-' => Token::T_MINUS,
         '*' => Token::T_STAR,
         '/' => Token::T_SLASH,
+
+        '(' => Token::T_LEFT_PAREN,
+        ')' => Token::T_RIGHT_PAREN,
     ];
 
     public function __construct(string $stream)
@@ -64,7 +67,7 @@ class Lexer
         }
 
         // Operators
-        if ($token = $this->match('/(==|~=|=|\+|-|\*|\/)/A')) {
+        if ($token = $this->match('/(==|~=|=|\+|-|\*|\/|\(|\))/A')) {
             return new Token(self::$stringToToken[$token['match']], $token['match'], $token['cursor']);
         }
 
