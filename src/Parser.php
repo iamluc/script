@@ -4,6 +4,13 @@ namespace Iamluc\Script;
 
 class Parser
 {
+    private $mathOperators = [
+        Token::T_PLUS => 10,
+        Token::T_MINUS => 10,
+        Token::T_STAR => 20,
+        Token::T_SLASH => 20,
+    ];
+
     public function parse(string $script)
     {
         $stream = new TokenStream(new Lexer($script));
@@ -34,7 +41,7 @@ class Parser
             return $this->parseAssign($stream, $token);
         }
 
-        if ($token->isScalar() || $token->isVariable()) {
+        if ($token->isScalar() || $token->isVariable() ) {
             return $this->parseExpression($stream, $token);
         }
 
@@ -92,12 +99,16 @@ class Parser
         return new Node\ComparisonNode($left, $operator->getValue(), $right);
     }
 
-    private function parseExpression(TokenStream $stream, Token $token)
+    private function parseExpression(TokenStream $stream, Token $token, $precedence = 0)
     {
         $left = $this->convertToNode($token); // FIXME: check type ?
-        while ($stream->nextIs([Token::T_PLUS, Token::T_MINUS])) {
+
+        while (($next = $stream->next())
+            && $next->isMathOperator()
+            && ($this->mathOperators[$next->getType()] > $precedence || 0 === $precedence)
+        ) {
             $operation = $stream->peek();
-            $right = $this->parseExpression($stream, $stream->peek());
+            $right = $this->parseExpression($stream, $stream->peek(), $this->mathOperators[$operation->getType()]);
 
             $left = new Node\MathNode($left, $operation->getValue(), $right);
         }

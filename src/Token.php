@@ -16,12 +16,14 @@ class Token
     public const T_ELSE = 'else';
     public const T_END = 'end';
 
-    public const T_ASSIGN = 'assign'; // =
+    public const T_ASSIGN = 'assign';       // =
 
-    public const T_PLUS = 'plus'; // +
-    public const T_MINUS = 'minus'; // +
+    public const T_PLUS = 'plus';           // +
+    public const T_MINUS = 'minus';         // -
+    public const T_STAR = 'star';           // *
+    public const T_SLASH = 'slash';         // /
 
-    public const T_EQUAL = 'equal'; // ==
+    public const T_EQUAL = 'equal';         // ==
     public const T_NOT_EQUAL = 'not equal'; // ~=
 
     public const T_NAME = 'variable name';
@@ -77,6 +79,11 @@ class Token
     public function isOperator(): bool
     {
         return $this->is([self::T_EQUAL, self::T_NOT_EQUAL]);
+    }
+
+    public function isMathOperator(): bool
+    {
+        return $this->is([self::T_PLUS, self::T_MINUS, self::T_STAR, self::T_SLASH]);
     }
 
     public function getScalarValue()

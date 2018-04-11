@@ -11,22 +11,77 @@ use Symfony\Component\VarDumper\Test\VarDumperTestTrait;
 
 class SandboxTest extends TestCase
 {
-    public function testMultiAssign()
+    /**
+     * @dataProvider provideAssign
+     */
+    public function testAssign($script, $expected)
     {
         $parser = new Parser();
-        $node = $parser->parse(<<<EOS
+        $sandbox = new Sandbox();
+        $sandbox->eval($parser->parse($script));
+
+        $this->assertEquals($expected, $sandbox->getVariables());
+    }
+
+    public function provideAssign()
+    {
+        yield [
+            <<<EOS
+abc = 123
+EOS
+            , [
+                'abc' => 123,
+            ]
+        ];
+
+        yield [
+            <<<EOS
 hello = "Salut"
 world = "le monde !"
 EOS
-        );
+            , [
+                'hello' => 'Salut',
+                'world' => 'le monde !',
+            ]
+        ];
 
-        $sandbox = new Sandbox();
-        $sandbox->eval($node);
+        yield [
+            <<<EOS
+val = 2 + 8 -1
+EOS
+            , [
+                'val' => 9,
+            ]
+        ];
 
-        $this->assertEquals([
-            'hello' => 'Salut',
-            'world' => 'le monde !',
-        ], $sandbox->getVariables());
+        yield [
+            <<<EOS
+val = 4 * 5
+EOS
+            , [
+                'val' => 20,
+            ]
+        ];
+
+        yield [
+            <<<EOS
+val = 4*5 +2/2 -5
+EOS
+            , [
+                'val' => 16,
+            ]
+        ];
+
+        yield [
+            <<<EOS
+mult = 10
+val = 5 - 3 * mult +15 + 5
+EOS
+            , [
+                'val' => -5,
+                'mult' => 10,
+            ]
+        ];
     }
 
     /**

@@ -24,6 +24,14 @@ class Sandbox
             return $node->getValue();
         }
 
+        if ($node instanceof Node\VariableNode) {
+            if (array_key_exists($node->getVariable(), $this->variables)) {
+                return $this->variables[$node->getVariable()];
+            }
+
+            throw new \LogicException(sprintf('Unknown variable "%s"', $this->getVariables()));
+        }
+
         if ($node instanceof Node\AssignNode) {
             return $this->evaluateAssignNode($node);
         }
@@ -77,6 +85,12 @@ class Sandbox
 
             case '-':
                 return $this->evaluateNode($comparison->getLeft()) - $this->evaluateNode($comparison->getRight());
+
+            case '*':
+                return $this->evaluateNode($comparison->getLeft()) * $this->evaluateNode($comparison->getRight());
+
+            case '/':
+                return $this->evaluateNode($comparison->getLeft()) / $this->evaluateNode($comparison->getRight());
         }
 
         throw new \LogicException(sprintf('Cannot evaluateNode math "%s"', $comparison->getOperator()));

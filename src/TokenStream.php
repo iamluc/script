@@ -19,12 +19,12 @@ class TokenStream
         return $this->forward(true);
     }
 
-    public function next()
+    public function next(): Token
     {
         return $this->forward(false);
     }
 
-    private function forward($peek)
+    private function forward($peek): Token
     {
         $nextPos = $this->position + 1;
         if (!isset($this->tokens[$nextPos])) {
@@ -39,22 +39,22 @@ class TokenStream
         return $this->tokens[$nextPos];
     }
 
-    public function nextIs($types)
+    public function nextIs($types): bool
     {
         return $this->next()->is($types);
     }
 
-    public function nextIsEOF()
+    public function nextIsEOF(): bool
     {
         return $this->next()->isEOF();
     }
 
-    public function nextIsScalar()
+    public function nextIsScalar(): bool
     {
         return $this->next()->isScalar();
     }
 
-    public function nextIsVariable()
+    public function nextIsVariable(): bool
     {
         return $this->next()->isVariable();
     }
