@@ -16,6 +16,9 @@ class Token
     public const T_ELSE = 'else';
     public const T_END = 'end';
 
+    public const T_WHILE = 'while';
+    public const T_DO = 'do';
+
     public const T_ASSIGN = 'assign';                   // =
 
     public const T_PLUS = 'plus';                       // +

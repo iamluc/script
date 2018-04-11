@@ -62,17 +62,25 @@ Iamluc\Script\Node\BlockNode {
       -condition: Iamluc\Script\Node\VariableNode {
         -variable: "toto"
       }
-      -if: Iamluc\Script\Node\AssignNode {
-        -var: "res"
-        -value: Iamluc\Script\Node\ScalarNode {
-          -value: "OK"
-        }
+      -if: Iamluc\Script\Node\BlockNode {
+        -nodes: array:1 [
+          0 => Iamluc\Script\Node\AssignNode {
+            -var: "res"
+            -value: Iamluc\Script\Node\ScalarNode {
+              -value: "OK"
+            }
+          }
+        ]
       }
-      -else: Iamluc\Script\Node\AssignNode {
-        -var: "res"
-        -value: Iamluc\Script\Node\ScalarNode {
-          -value: "KO"
-        }
+      -else: Iamluc\Script\Node\BlockNode {
+        -nodes: array:1 [
+          0 => Iamluc\Script\Node\AssignNode {
+            -var: "res"
+            -value: Iamluc\Script\Node\ScalarNode {
+              -value: "KO"
+            }
+          }
+        ]
       }
     }
   ]

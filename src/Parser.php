@@ -15,12 +15,18 @@ class Parser
     {
         $stream = new TokenStream(new Lexer($script));
 
+        return $this->parseBlock($stream, Token::T_EOF);
+    }
+
+    private function parseBlock(TokenStream $stream, $end): Node\BlockNode
+    {
         $nodes = [];
-        while (!$stream->nextIsEOF()) {
+        while (!$stream->nextIs($end)) {
             $nodes[] = $this->parseStatement($stream);
         }
 
         return new Node\BlockNode($nodes);
+
     }
 
     private function parseStatement(TokenStream $stream): Node\Node
@@ -35,6 +41,10 @@ class Parser
             return $this->parseIf($stream);
         }
 
+        if ($token->is(Token::T_WHILE)) {
+            return $this->parseWhile($stream);
+        }
+
         if ($token->isVariable() && $stream->nextIs(Token::T_ASSIGN)) {
             $stream->peek(); // consume "="
 
@@ -42,51 +52,6 @@ class Parser
         }
 
         return $this->parseExpression($stream, $token);
-    }
-
-    private function parseIf(TokenStream $stream, $end = true)
-    {
-        $condition = $this->parseCondition($stream);
-
-        $stream->expect(Token::T_THEN);
-
-        $if = $this->parseStatement($stream);
-
-        while ($stream->nextIs([Token::T_ELSE, Token::T_ELSEIF])) {
-            $token = $stream->peek(); // consume else/elseif
-
-            if ($token->is(Token::T_ELSE)) {
-                $else = $this->parseStatement($stream);
-            } else {
-                $else = $this->parseIf($stream, false);
-            }
-
-            $if = new Node\ConditionalNode($condition, $if, $else);
-        }
-
-        if ($end) {
-            $stream->expect(Token::T_END);
-        }
-
-        return $if;
-    }
-
-    private function parseCondition(TokenStream $stream): Node\Node
-    {
-        $left = $this->parseExpression($stream, $stream->peek());
-
-        if ($stream->nextIs(Token::T_THEN)) {
-            return $left;
-        }
-
-        $operator = $stream->peek();
-        if (!$operator->isOperator()) {
-            throw new \LogicException(sprintf('Expected an operator, got "%s".', $operator->getType()));
-        }
-
-        $right = $this->parseExpression($stream, $stream->peek());
-
-        return new Node\ComparisonNode($left, $operator->getValue(), $right);
     }
 
     private function parseExpression(TokenStream $stream, Token $token, $precedence = 0)
@@ -123,6 +88,64 @@ class Parser
         }
 
         return $left;
+    }
+
+    private function parseWhile(TokenStream $stream)
+    {
+        $condition = $this->parseCondition($stream,Token::T_DO);
+
+        $stream->expect(Token::T_DO);
+
+        $body = $this->parseBlock($stream, [Token::T_END]);
+
+        $stream->expect(Token::T_END);
+
+        return new Node\WhileNode($condition, $body);
+    }
+
+    private function parseIf(TokenStream $stream, $end = true)
+    {
+        $condition = $this->parseCondition($stream, Token::T_THEN);
+
+        $stream->expect(Token::T_THEN);
+
+        $if = $this->parseBlock($stream, [Token::T_ELSE, Token::T_ELSEIF, Token::T_END]);
+
+        while ($stream->nextIs([Token::T_ELSE, Token::T_ELSEIF])) {
+            $token = $stream->peek(); // consume else/elseif
+
+            if ($token->is(Token::T_ELSE)) {
+                $else = $this->parseBlock($stream, [Token::T_ELSE, Token::T_ELSEIF, Token::T_END]);
+            } else {
+                $else = $this->parseIf($stream, false);
+            }
+
+            $if = new Node\ConditionalNode($condition, $if, $else);
+        }
+
+        if ($end) {
+            $stream->expect(Token::T_END);
+        }
+
+        return $if;
+    }
+
+    private function parseCondition(TokenStream $stream, $end): Node\Node
+    {
+        $left = $this->parseExpression($stream, $stream->peek());
+
+        if ($stream->nextIs($end)) {
+            return $left;
+        }
+
+        $operator = $stream->peek();
+        if (!$operator->isOperator()) {
+            throw new \LogicException(sprintf('Expected an operator, got "%s".', $operator->getType()));
+        }
+
+        $right = $this->parseExpression($stream, $stream->peek());
+
+        return new Node\ComparisonNode($left, $operator->getValue(), $right);
     }
 
     private function parseAssign(TokenStream $stream, Token $variable): Node\AssignNode

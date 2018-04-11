@@ -2,7 +2,6 @@
 
 namespace Iamluc\Script\Node;
 
-
 class ConditionalNode extends Node
 {
     private $condition;

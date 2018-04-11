@@ -2,7 +2,6 @@
 
 namespace Iamluc\Script\Node;
 
-
 class AssignNode extends Node
 {
     private $var;

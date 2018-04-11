@@ -119,6 +119,24 @@ EOS
         yield [
             <<<EOS
 if 1 == 1 then
+    abc = 123
+    def = 456
+    ghi = "hourra"
+    jkl = true 
+end
+
+EOS
+            , [
+                'abc' => 123,
+                'def' => 456,
+                'ghi' => 'hourra',
+                'jkl' => true,
+            ]
+        ];
+
+        yield [
+            <<<EOS
+if 1 == 1 then
     testA = "OK"
 else
     testA = "KO"
@@ -240,6 +258,36 @@ EOS
             , [
                 'val' => 8,
                 'res' => 'OK',
+            ]
+        ];
+    }
+
+    /**
+     * @dataProvider provideWhile
+     */
+    public function testWhile($script, $expected)
+    {
+        $parser = new Parser();
+        $sandbox = new Sandbox();
+        $sandbox->eval($parser->parse($script));
+
+        $this->assertEquals($expected, $sandbox->getVariables());
+    }
+
+    public function provideWhile()
+    {
+        yield [
+            <<<EOS
+a = 0
+cpt = 2
+while a ~= 3 do
+    cpt = cpt * cpt
+    a = a + 1
+end
+EOS
+            , [
+                'a' => 3,
+                'cpt' => 256,
             ]
         ];
     }

@@ -32,6 +32,10 @@ class Sandbox
             throw new \LogicException(sprintf('Unknown variable "%s"', $this->getVariables()));
         }
 
+        if ($node instanceof Node\BlockNode) {
+            return $this->evaluateBlockNode($node);
+        }
+
         if ($node instanceof Node\NegativeNode) {
             return -$this->evaluateNode($node->getValue());
         }
@@ -48,11 +52,22 @@ class Sandbox
             return $this->evaluateConditionalNode($node);
         }
 
+        if ($node instanceof Node\WhileNode) {
+            return $this->evaluateWhileNode($node);
+        }
+
         if ($node instanceof Node\MathNode) {
             return $this->evaluateMathNode($node);
         }
 
         throw new \LogicException(sprintf('Unable to evaluateNode node of type %s', get_class($node)));
+    }
+
+    private function evaluateBlockNode(Node\BlockNode $block)
+    {
+        foreach ($block->getNodes() as $node) {
+            $this->evaluateNode($node);
+        }
     }
 
     private function evaluateConditionalNode(Node\ConditionalNode $node)
@@ -61,6 +76,13 @@ class Sandbox
         $toProcess = $value ? $node->getIf() : $node->getElse();
 
         return $this->evaluateNode($toProcess);
+    }
+
+    private function evaluateWhileNode(Node\WhileNode $node)
+    {
+        while ($value = $this->evaluateNode($node->getCondition())) {
+            $this->evaluateNode($node->getBlock());
+        }
     }
 
     private function evaluateAssignNode(Node\AssignNode $node)
