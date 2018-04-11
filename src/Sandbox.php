@@ -32,6 +32,10 @@ class Sandbox
             throw new \LogicException(sprintf('Unknown variable "%s"', $this->getVariables()));
         }
 
+        if ($node instanceof Node\NegativeNode) {
+            return -$this->evaluateNode($node->getValue());
+        }
+
         if ($node instanceof Node\AssignNode) {
             return $this->evaluateAssignNode($node);
         }

@@ -12,9 +12,9 @@ use Symfony\Component\VarDumper\Test\VarDumperTestTrait;
 class SandboxTest extends TestCase
 {
     /**
-     * @dataProvider provideAssign
+     * @dataProvider provideExpression
      */
-    public function testAssign($script, $expected)
+    public function testExpression($script, $expected)
     {
         $parser = new Parser();
         $sandbox = new Sandbox();
@@ -23,7 +23,7 @@ class SandboxTest extends TestCase
         $this->assertEquals($expected, $sandbox->getVariables());
     }
 
-    public function provideAssign()
+    public function provideExpression()
     {
         yield [
             <<<EOS
@@ -80,6 +80,37 @@ EOS
             , [
                 'val' => -5,
                 'mult' => 10,
+            ]
+        ];
+
+        yield [
+            <<<EOS
+a = -2
+b = -3
+val = a * b
+EOS
+            , [
+                'a' => -2,
+                'b' => -3,
+                'val' => 6,
+            ]
+        ];
+
+        yield [
+            <<<EOS
+val = -2 * 10 + 5
+EOS
+            , [
+                'val' => -15,
+            ]
+        ];
+
+        yield [
+            <<<EOS
+val = +10 - 3*4
+EOS
+            , [
+                'val' => -2,
             ]
         ];
     }
@@ -177,15 +208,6 @@ end
 EOS
             , [
                 'val' => 'B-2',
-            ]
-        ];
-
-        yield [
-            <<<EOS
-res = 2 + 3
-EOS
-            , [
-                'res' => '5',
             ]
         ];
 

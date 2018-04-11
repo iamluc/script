@@ -41,11 +41,7 @@ class Parser
             return $this->parseAssign($stream, $token);
         }
 
-        if ($token->isScalar() || $token->isVariable() ) {
-            return $this->parseExpression($stream, $token);
-        }
-
-        throw new \LogicException('Unable to parse.');
+        return $this->parseExpression($stream, $token);
     }
 
     private function parseIf(TokenStream $stream, $end = true)
@@ -101,7 +97,18 @@ class Parser
 
     private function parseExpression(TokenStream $stream, Token $token, $precedence = 0)
     {
-        $left = $this->convertToNode($token); // FIXME: check type ?
+        switch ($token->getType()) {
+            case Token::T_MINUS: // negative
+                $left = new Node\NegativeNode($this->parseExpression($stream, $stream->peek(), 100));
+                break;
+
+            case Token::T_PLUS: // positive, ignore
+                $token = $stream->peek();
+                // no break
+
+            default:
+                $left = $this->convertToNode($token);
+        }
 
         while (($next = $stream->next())
             && $next->isMathOperator()
