@@ -2,6 +2,7 @@
 
 namespace Iamluc\Script;
 
+use Iamluc\Script\Exception\BreakException;
 use Iamluc\Script\Exception\ReturnException;
 
 class Sandbox
@@ -13,7 +14,7 @@ class Sandbox
     {
         $this->globalScope = new Scope();
 
-        return $this->evaluateBlockNode($main, false, true);
+        return $this->evaluateBlockNode($main, true);
     }
 
     public function getGlobals(): array
@@ -21,7 +22,7 @@ class Sandbox
         return $this->globalScope->getVariables();
     }
 
-    private function evaluateBlockNode(Node\BlockNode $block, $catchBreak = false, $catchReturn = false)
+    private function evaluateBlockNode(Node\BlockNode $block, $catchReturn = false)
     {
         foreach ($block->getNodes() as $node) { // FIXME: create local scope
             try {
@@ -86,6 +87,14 @@ class Sandbox
             throw new ReturnException($this->evaluateReturnNode($node));
         }
 
+        if ($node instanceof Node\BreakNode) {
+            throw new BreakException();
+        }
+
+        if ($node instanceof Node\NoOperationNode) {
+            return;
+        }
+
         throw new \LogicException(sprintf('Unable to evaluateNode node of type %s', get_class($node)));
     }
 
@@ -100,7 +109,11 @@ class Sandbox
     private function evaluateWhileNode(Node\WhileNode $node)
     {
         while ($value = $this->evaluateNode($node->getCondition())) {
-            $this->evaluateBlockNode($node->getBlock(), true);
+            try {
+                $this->evaluateBlockNode($node->getBlock());
+            } catch (BreakException $break) {
+                return;
+            }
         }
     }
 
@@ -118,7 +131,7 @@ class Sandbox
     {
         $function = $this->globalScope->getFunction($node->getFunctionName());
 
-        return $this->evaluateBlockNode($function->getBlock(), false, true);
+        return $this->evaluateBlockNode($function->getBlock(), true);
     }
 
     private function evaluateReturnNode(Node\ReturnNode $node)

@@ -2,6 +2,9 @@
 
 namespace Iamluc\Script;
 
+use Iamluc\Script\Node\BlockNode;
+use Iamluc\Script\Node\NoOperationNode;
+
 class Parser
 {
     private $mathOperators = [
@@ -50,6 +53,10 @@ class Parser
 
         if ($token->is(Token::T_RETURN)) { // FIXME: avoid repetition "return return true"
             return $this->parseReturn($stream);
+        }
+
+        if ($token->is(Token::T_BREAK)) {
+            return $this->parseBreak($stream);
         }
 
         // Function call
@@ -134,12 +141,17 @@ class Parser
             $token = $stream->peek(); // consume else/elseif
 
             if ($token->is(Token::T_ELSE)) {
-                $else = $this->parseBlock($stream, [Token::T_ELSE, Token::T_ELSEIF, Token::T_END]);
+                $else = $this->parseBlock($stream, Token::T_END);
             } else {
                 $else = $this->parseIf($stream, false);
             }
 
             $if = new Node\ConditionalNode($condition, $if, $else);
+        }
+
+        // if alone
+        if ($if instanceof BlockNode) {
+            $if = new Node\ConditionalNode($condition, $if, new NoOperationNode());
         }
 
         if ($end) {
@@ -191,6 +203,11 @@ class Parser
     private function parseReturn(TokenStream $stream): Node\ReturnNode
     {
         return new Node\ReturnNode($this->parseStatement($stream));
+    }
+
+    private function parseBreak(TokenStream $stream): Node\BreakNode
+    {
+        return new Node\BreakNode();
     }
 
     private function parseAssign(TokenStream $stream, Token $variable): Node\AssignNode

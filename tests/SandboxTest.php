@@ -121,7 +121,8 @@ EOS
         $parser = new Parser();
         $sandbox = new Sandbox();
 
-        $result = $sandbox->eval($parser->parse($script));
+        $block = $parser->parse($script);
+        $result = $sandbox->eval($block);
 
         $this->assertEquals($expectedGlobals, $sandbox->getGlobals());
         $this->assertEquals($expectedResult, $result);
@@ -144,6 +145,20 @@ EOS
                 'def' => 456,
                 'ghi' => 'hourra',
                 'jkl' => true,
+            ]
+        ];
+
+        yield [
+            <<<EOS
+val = 1
+if 1 == 2 then
+    val = 2
+    zz = 8
+end
+
+EOS
+            , [
+                'val' => 1,
             ]
         ];
 
@@ -297,13 +312,16 @@ EOS
     /**
      * @dataProvider provideWhile
      */
-    public function testWhile($script, $expected)
+    public function testWhile($script, $expectedGlobals, $expectedResult = null)
     {
         $parser = new Parser();
         $sandbox = new Sandbox();
-        $sandbox->eval($parser->parse($script));
 
-        $this->assertEquals($expected, $sandbox->getGlobals());
+        $block = $parser->parse($script);
+        $result = $sandbox->eval($block);
+
+        $this->assertEquals($expectedGlobals, $sandbox->getGlobals());
+        $this->assertEquals($expectedResult, $result);
     }
 
     public function provideWhile()
@@ -321,6 +339,48 @@ EOS
                 'a' => 3,
                 'cpt' => 256,
             ]
+        ];
+
+        yield [
+            <<<EOS
+a = 0
+cpt = 2
+while a ~= 3 do
+    cpt = cpt * cpt
+    a = a + 1
+    
+    return "FIN"
+end
+
+return "WHAT???"
+EOS
+            , [
+                'a' => 1,
+                'cpt' => 4,
+            ],
+            'FIN'
+        ];
+
+        yield [
+            <<<EOS
+a = 0
+cpt = 2
+while a ~= 3 do
+    cpt = cpt * cpt
+    a = a + 1
+
+    if a == 2 then
+        break
+    end
+end
+
+return "THE END"
+EOS
+            , [
+                'a' => 2,
+                'cpt' => 16,
+            ],
+            'THE END'
         ];
     }
 

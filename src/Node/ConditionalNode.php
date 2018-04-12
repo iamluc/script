@@ -10,8 +10,8 @@ class ConditionalNode extends Node
 
     public function __construct(Node $condition, BlockNode $if, Node $else)
     {
-        if (!$else instanceof BlockNode && !$else instanceof ConditionalNode) {
-            throw new \LogicException('Argument "else" of ConditionalNode must be a BlockNode or a ConditionalNode.');
+        if (!$else instanceof BlockNode && !$else instanceof ConditionalNode && !$else instanceof NoOperationNode) {
+            throw new \LogicException('Argument "else" of ConditionalNode must be a BlockNode a ConditionalNode, or a NoOperationNode.');
         }
 
         $this->condition = $condition;
@@ -30,7 +30,7 @@ class ConditionalNode extends Node
     }
 
     /**
-     * @return BlockNode|ConditionalNode
+     * @return BlockNode|ConditionalNode|NoOperationNode
      */
     public function getElse(): Node
     {

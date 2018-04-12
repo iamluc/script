@@ -19,6 +19,7 @@ class Lexer
 
         'while' => Token::T_WHILE,
         'do' => Token::T_DO,
+        'break' => Token::T_BREAK,
 
         'true' => Token::T_TRUE,
         'false' => Token::T_FALSE,
@@ -68,7 +69,7 @@ class Lexer
         }
 
         // Control structures, function
-        if ($token = $this->match('/(if|then|elseif|else|end|while|do|function|return)\b/A')) {
+        if ($token = $this->match('/(if|then|elseif|else|end|while|do|function|return|break)\b/A')) {
             return new Token(self::$stringToToken[$token['match']], $token['match'], $token['cursor']);
         }
 

@@ -21,6 +21,7 @@ class Token
 
     public const T_WHILE = 'while';
     public const T_DO = 'do';
+    public const T_BREAK = 'break';
 
     public const T_ASSIGN = 'assign';                   // =
 
