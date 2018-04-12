@@ -63,6 +63,10 @@ class Sandbox
             return $this->evaluateComparisonNode($node);
         }
 
+        if ($node instanceof Node\LogicalNode) {
+            return $this->evaluateLogicalNode($node);
+        }
+
         if ($node instanceof Node\ConditionalNode) {
             return $this->evaluateConditionalNode($node);
         }
@@ -147,9 +151,34 @@ class Sandbox
 
             case '~=':
                 return $this->evaluateNode($comparison->getLeft()) !== $this->evaluateNode($comparison->getRight());
+
+            case '>':
+                return $this->evaluateNode($comparison->getLeft()) > $this->evaluateNode($comparison->getRight());
+
+            case '>=':
+                return $this->evaluateNode($comparison->getLeft()) >= $this->evaluateNode($comparison->getRight());
+
+            case '<':
+                return $this->evaluateNode($comparison->getLeft()) < $this->evaluateNode($comparison->getRight());
+
+            case '<=':
+                return $this->evaluateNode($comparison->getLeft()) <= $this->evaluateNode($comparison->getRight());
         }
 
-        throw new \LogicException(sprintf('Cannot evaluateNode comparison "%s"', $comparison->getOperator()));
+        throw new \LogicException(sprintf('Cannot evaluate comparison node with operator "%s"', $comparison->getOperator()));
+    }
+
+    private function evaluateLogicalNode(Node\LogicalNode $logical)
+    {
+        switch ($logical->getOperator()) {
+            case 'and':
+                return $this->evaluateNode($logical->getLeft()) && $this->evaluateNode($logical->getRight());
+
+            case 'or':
+                return $this->evaluateNode($logical->getLeft()) || $this->evaluateNode($logical->getRight());
+        }
+
+        throw new \LogicException(sprintf('Cannot evaluate logical node with operator "%s"', $logical->getOperator()));
     }
 
     private function evaluateMathNode(Node\MathNode $comparison)
@@ -168,6 +197,6 @@ class Sandbox
                 return $this->evaluateNode($comparison->getLeft()) / $this->evaluateNode($comparison->getRight());
         }
 
-        throw new \LogicException(sprintf('Cannot evaluateNode math "%s"', $comparison->getOperator()));
+        throw new \LogicException(sprintf('Cannot evaluate math node with operator "%s"', $comparison->getOperator()));
     }
 }

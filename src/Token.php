@@ -32,6 +32,13 @@ class Token
 
     public const T_EQUAL = 'equal';                     // ==
     public const T_NOT_EQUAL = 'not equal';             // ~=
+    public const T_LESS_THAN = 'less than';             // <
+    public const T_LESS_EQUAL = 'less or equal';        // <=
+    public const T_GREATER_THAN = 'greater than';       // >
+    public const T_GREATER_EQUAL = 'greater or equal';  // >=
+
+    public const T_AND = 'and';
+    public const T_OR = 'or';
 
     public const T_LEFT_PAREN = 'left parenthesis';     // (
     public const T_RIGHT_PAREN = 'right parenthesis';   // )
@@ -95,9 +102,9 @@ class Token
         return $this->is([self::T_STRING, self::T_NUMBER, self::T_TRUE, self::T_FALSE, self::T_NIL]);
     }
 
-    public function isOperator(): bool
+    public function isComparator(): bool
     {
-        return $this->is([self::T_EQUAL, self::T_NOT_EQUAL]);
+        return $this->is([self::T_EQUAL, self::T_NOT_EQUAL, self::T_LESS_THAN, self::T_LESS_EQUAL, self::T_GREATER_THAN, self::T_GREATER_EQUAL]);
     }
 
     public function isMathOperator(): bool

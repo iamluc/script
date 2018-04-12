@@ -7,11 +7,30 @@ use Iamluc\Script\Node\NoOperationNode;
 
 class Parser
 {
-    private $mathOperators = [
-        Token::T_PLUS => 10,
-        Token::T_MINUS => 10,
-        Token::T_STAR => 20,
-        Token::T_SLASH => 20,
+    /**
+     * @see https://www.lua.org/pil/3.5.html
+     */
+    private $precedenceMap = [
+        Token::T_AND => 10,
+        Token::T_OR => 10,
+
+        Token::T_EQUAL => 20,
+        Token::T_NOT_EQUAL => 20,
+        Token::T_LESS_THAN => 20,
+        Token::T_GREATER_THAN => 20,
+        Token::T_LESS_EQUAL => 20,
+        Token::T_GREATER_EQUAL => 20,
+
+        // TODO: .. => 30
+
+        Token::T_PLUS => 40,
+        Token::T_MINUS => 40,
+
+        Token::T_STAR => 50,
+        Token::T_SLASH => 50,
+
+        // TODO: not / - (unary) => 60
+        // TODO: ^ => 70
     ];
 
     public function parse(string $script)
@@ -104,13 +123,19 @@ class Parser
         }
 
         while (($next = $stream->next())
-            && $next->isMathOperator()
-            && ($this->mathOperators[$next->getType()] > $precedence || 0 === $precedence)
+            && isset($this->precedenceMap[$next->getType()])
+            && ($this->precedenceMap[$next->getType()] > $precedence || 0 === $precedence)
         ) {
             $operation = $stream->peek();
-            $right = $this->parseExpression($stream, $stream->peek(), $this->mathOperators[$operation->getType()]);
+            $right = $this->parseExpression($stream, $stream->peek(), $this->precedenceMap[$operation->getType()]);
 
-            $left = new Node\MathNode($left, $operation->getValue(), $right);
+            if ($operation->isMathOperator()) {
+                $left = new Node\MathNode($left, $operation->getValue(), $right);
+            } elseif ($operation->isComparator()) {
+                $left = new Node\ComparisonNode($left, $operation->getValue(), $right);
+            } else {
+                $left = new Node\LogicalNode($left, $operation->getValue(), $right);
+            }
         }
 
         return $left;
@@ -118,7 +143,7 @@ class Parser
 
     private function parseWhile(TokenStream $stream)
     {
-        $condition = $this->parseCondition($stream,Token::T_DO);
+        $condition = $this->parseExpression($stream, $stream->peek());
 
         $stream->expect(Token::T_DO);
 
@@ -131,7 +156,7 @@ class Parser
 
     private function parseIf(TokenStream $stream, $end = true)
     {
-        $condition = $this->parseCondition($stream, Token::T_THEN);
+        $condition = $this->parseExpression($stream, $stream->peek());
 
         $stream->expect(Token::T_THEN);
 
@@ -159,24 +184,6 @@ class Parser
         }
 
         return $if;
-    }
-
-    private function parseCondition(TokenStream $stream, $end): Node\Node
-    {
-        $left = $this->parseExpression($stream, $stream->peek());
-
-        if ($stream->nextIs($end)) {
-            return $left;
-        }
-
-        $operator = $stream->peek();
-        if (!$operator->isOperator()) {
-            throw new \LogicException(sprintf('Expected an operator, got "%s".', $operator->getType()));
-        }
-
-        $right = $this->parseExpression($stream, $stream->peek());
-
-        return new Node\ComparisonNode($left, $operator->getValue(), $right);
     }
 
     private function parseCall(TokenStream $stream, Token $name): Node\CallNode

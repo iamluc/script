@@ -39,6 +39,23 @@ class SandboxTest extends TestCase
         yield ['5 / (4+1) * 6 + 3 * 2 * 2', 18];
         yield ['-5 - (-3-1)', -1];
 
+        yield ['4*3 == 4+8', true];
+        yield ['4*3 ~= 4+8', false];
+        yield ['1 > 2', false];
+        yield ['1 >= 2', false];
+        yield ['2 >= 2', true];
+        yield ['1 < 2', true];
+        yield ['1 <= 2', true];
+        yield ['2 <= 2', true];
+        yield ['3 <= 2', false];
+
+        yield ['true and true', true];
+        yield ['true and false', false];
+        yield ['false and false', false];
+        yield ['true or true', true];
+        yield ['true or false', true];
+        yield ['false or false', false];
+
         yield [
             <<<EOS
 mult = 10
@@ -307,6 +324,15 @@ EOS
             ],
             7
         ];
+
+        yield ['if 1 > 2 then return true else return false end', [], false];
+        yield ['if 1 >= 2 then return true else return false end', [], false];
+        yield ['if 1 < 2 then return true else return false end', [], true];
+        yield ['if 1 <= 2 then return true else return false end', [], true];
+
+        yield ['if 2 + 4 <= 5 then return true else return false end', [], false];
+        yield ['if 2 + 3 <= 5 then return true else return false end', [], true];
+        yield ['if 2 + 2 <= 5 then return true else return false end', [], true];
     }
 
     /**
@@ -382,18 +408,25 @@ EOS
             ],
             'THE END'
         ];
+
+        yield ['while a < 3 do a = a + 1 end return a *2', ['a' => 3], 6];
+        yield ['while a <= 3 do a = a + 1 end return a *2', ['a' => 4], 8];
+        yield ['a = 3 while a >= 0 do a = a - 1 end return a *2', ['a' => -1], -2];
     }
 
     /**
      * @dataProvider provideFunction
      */
-    public function testFunction($script, $expected)
+    public function testFunction($script, $expectedGlobals, $expectedResult = null)
     {
         $parser = new Parser();
         $sandbox = new Sandbox();
-        $sandbox->eval($parser->parse($script));
 
-        $this->assertEquals($expected, $sandbox->getGlobals());
+        $block = $parser->parse($script);
+        $result = $sandbox->eval($block);
+
+        $this->assertEquals($expectedGlobals, $sandbox->getGlobals());
+        $this->assertEquals($expectedResult, $result);
     }
 
     public function provideFunction()
@@ -412,6 +445,7 @@ EOS
                 'res' => 'test func',
             ]
         ];
+
         yield [
             <<<EOS
 function test()
@@ -423,6 +457,78 @@ EOS
             , [
                 'res' => 20,
             ]
+        ];
+
+        yield [
+            <<<EOS
+a = 1
+function test() a = 2 end
+return true or test()
+EOS
+            , [
+                'a' => 1,
+            ],
+            true
+        ];
+
+        yield [
+            <<<EOS
+a = 1
+function test() a = 2 end
+return true and test()
+EOS
+            , [
+                'a' => 2,
+            ],
+            false
+        ];
+
+        yield [
+            <<<EOS
+a = 1
+function test() a = 2 return true end
+return true and test()
+EOS
+            , [
+                'a' => 2,
+            ],
+            true
+        ];
+
+        yield [
+            <<<EOS
+a = 1
+function test() a = 2 end
+return false or test()
+EOS
+            , [
+                'a' => 2,
+            ],
+            false
+        ];
+
+        yield [
+            <<<EOS
+a = 1
+function test() a = 2 end
+return false and test()
+EOS
+            , [
+                'a' => 1,
+            ],
+            false
+        ];
+
+        yield [
+            <<<EOS
+andy = 1
+function test() andy = 2 return false end
+return true and test()
+EOS
+            , [
+                'andy' => 2,
+            ],
+            false
         ];
     }
 }

@@ -25,9 +25,16 @@ class Lexer
         'false' => Token::T_FALSE,
         'nil' => Token::T_NIL,
 
+        'and' => Token::T_AND,
+        'or' => Token::T_OR,
+
         '=' => Token::T_ASSIGN,
         '==' => Token::T_EQUAL,
         '~=' => Token::T_NOT_EQUAL,
+        '<' => Token::T_GREATER_THAN,
+        '>' => Token::T_GREATER_THAN,
+        '<=' => Token::T_LESS_EQUAL,
+        '>=' => Token::T_GREATER_EQUAL,
 
         '+' => Token::T_PLUS,
         '-' => Token::T_MINUS,
@@ -68,17 +75,17 @@ class Lexer
             return $this->next();
         }
 
-        // Control structures, function
-        if ($token = $this->match('/(if|then|elseif|else|end|while|do|function|return|break)\b/A')) {
+        // Boundary
+        if ($token = $this->match('/(and|or|if|then|elseif|else|end|while|do|function|return|break)\b/A')) {
             return new Token(self::$stringToToken[$token['match']], $token['match'], $token['cursor']);
         }
 
-        // Operators
-        if ($token = $this->match('/(==|~=|=|\+|-|\*|\/|\(|\))/A')) {
+        // No boundary
+        if ($token = $this->match('/(==|~=|<=|<|>=|>|=|\+|-|\*|\/|\(|\))/A')) {
             return new Token(self::$stringToToken[$token['match']], $token['match'], $token['cursor']);
         }
 
-        // Constants
+        // Boundary + insensitive
         if ($token = $this->match('/(true|false|nil)\b/Ai')) {
             $constant = strtolower($token['match']);
             return new Token(self::$stringToToken[$constant], $constant, $token['cursor']);
