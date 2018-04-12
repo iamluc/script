@@ -20,9 +20,9 @@ class SandboxTest extends TestCase
         $sandbox = new Sandbox();
 
         $script = $autoReturn ? 'return '.$script : $script;
-        $sandbox->eval($parser->parse($script));
+        $result = $sandbox->eval($parser->parse($script));
 
-        $this->assertEquals($expected, $sandbox->getResult());
+        $this->assertEquals($expected, $result);
     }
 
     public function provideExpression()
@@ -54,6 +54,15 @@ b = -3
 return a * b
 EOS
             , 6, false
+        ];
+
+        yield [
+            <<<EOS
+return 2
+
+return 3
+EOS
+            , 2, false
         ];
     }
 
@@ -107,13 +116,15 @@ EOS
     /**
      * @dataProvider provideIf
      */
-    public function testIf($script, $expected)
+    public function testIf($script, $expectedGlobals, $expectedResult = null)
     {
         $parser = new Parser();
         $sandbox = new Sandbox();
-        $sandbox->eval($parser->parse($script));
 
-        $this->assertEquals($expected, $sandbox->getGlobals());
+        $result = $sandbox->eval($parser->parse($script));
+
+        $this->assertEquals($expectedGlobals, $sandbox->getGlobals());
+        $this->assertEquals($expectedResult, $result);
     }
 
     public function provideIf()
@@ -256,11 +267,30 @@ elseif false then
 else
     res = "WHAT?"
 end
+
+return "Done"
 EOS
             , [
                 'val' => 8,
                 'res' => 'OK',
-            ]
+            ],
+            'Done'
+        ];
+
+        yield [
+            <<<EOS
+if false then
+    val = 1
+    return val+10
+else
+    val = 4
+    return 3 + val
+end
+EOS
+            , [
+                'val' => 4,
+            ],
+            7
         ];
     }
 

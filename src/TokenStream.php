@@ -29,7 +29,6 @@ class TokenStream
         $nextPos = $this->position + 1;
         if (!isset($this->tokens[$nextPos])) {
             $this->tokens[$nextPos] = $this->lexer->next();
-//            dump($this->tokens[$nextPos]);
         }
 
         if ($peek) {

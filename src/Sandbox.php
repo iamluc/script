@@ -13,7 +13,7 @@ class Sandbox
     {
         $this->globalScope = new Scope();
 
-        $this->evaluateBlockNode($main);
+        return $this->evaluateBlockNode($main, false, true);
     }
 
     public function getGlobals(): array
@@ -21,18 +21,17 @@ class Sandbox
         return $this->globalScope->getVariables();
     }
 
-    public function getResult()
-    {
-        return $this->globalScope->getResult();
-    }
-
-    private function evaluateBlockNode(Node\BlockNode $block)
+    private function evaluateBlockNode(Node\BlockNode $block, $catchBreak = false, $catchReturn = false)
     {
         foreach ($block->getNodes() as $node) { // FIXME: create local scope
             try {
                 $this->evaluateNode($node);
             } catch (ReturnException $return) {
-                return $return->getValue();
+                if ($catchReturn) {
+                    return $return->getValue();
+                }
+
+                throw $return;
             }
         }
     }
@@ -101,7 +100,7 @@ class Sandbox
     private function evaluateWhileNode(Node\WhileNode $node)
     {
         while ($value = $this->evaluateNode($node->getCondition())) {
-            $this->evaluateNode($node->getBlock());
+            $this->evaluateBlockNode($node->getBlock(), true);
         }
     }
 
@@ -118,14 +117,13 @@ class Sandbox
     private function evaluateCallNode(Node\CallNode $node)
     {
         $function = $this->globalScope->getFunction($node->getFunctionName());
-        $this->evaluateNode($function->getBlock());
 
-        return $this->globalScope->getResult();
+        return $this->evaluateBlockNode($function->getBlock(), false, true);
     }
 
     private function evaluateReturnNode(Node\ReturnNode $node)
     {
-        $this->globalScope->setResult($this->evaluateNode($node->getValue()));
+        return $this->evaluateNode($node->getValue());
     }
 
     private function evaluateComparisonNode(Node\ComparisonNode $comparison)

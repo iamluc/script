@@ -7,7 +7,7 @@ class WhileNode extends Node
     private $condition;
     private $block;
 
-    public function __construct(Node $condition, Node $block)
+    public function __construct(Node $condition, BlockNode $block)
     {
         $this->condition = $condition;
         $this->block = $block;
@@ -18,7 +18,7 @@ class WhileNode extends Node
         return $this->condition;
     }
 
-    public function getBlock(): Node
+    public function getBlock(): BlockNode
     {
         return $this->block;
     }

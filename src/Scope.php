@@ -6,7 +6,6 @@ class Scope
 {
     private $variables = [];
     private $functions = [];
-    private $result;
 
     public function setVariable($name, $value)
     {
@@ -40,15 +39,5 @@ class Scope
     public function getFunctions(): array
     {
         return $this->functions;
-    }
-
-    public function setResult($value)
-    {
-        $this->result = $value;
-    }
-
-    public function getResult()
-    {
-        return $this->result;
     }
 }
