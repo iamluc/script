@@ -56,6 +56,10 @@ class SandboxTest extends TestCase
         yield ['true or false', true];
         yield ['false or false', false];
 
+        yield ['1==1+1 or 2~=2*1 and true', false];
+        yield ['1==1+1 or 2==2*1 and true', true];
+        yield ['1==1+1 or 2==2*1 and false', false];
+
         yield [
             <<<EOS
 mult = 10
