@@ -513,6 +513,17 @@ EOS
             ],
             false
         ];
+
+        yield [
+            <<<EOS
+test = function() aa = 22 return 18 end
+return test()
+EOS
+            , [
+                'aa' => 22,
+            ],
+            18
+        ];
     }
 
     public function testVariableScope()
@@ -566,25 +577,40 @@ function set()
     return "global"
 end
 
-call1 = set()
+closure = function()
+    return "closure global"
+end
+
+set_1 = set()
+closure_1 = closure()
 
 do
     local function set()
         return "local"
     end
-    call2 = set()
+
+    local closure = function()
+        return "closure local"
+    end
+    
+    set_2 = set()
+    closure_2 = closure()
 end
 
-call3 = set()
+set_3 = set()
+closure_3 = closure()
 EOS;
 
         $block = $parser->parse($script);
         $result = $sandbox->eval($block);
 
         $this->assertEquals([
-            'call1' => 'global',
-            'call2' => 'local',
-            'call3' => 'global',
+            'set_1' => 'global',
+            'set_2' => 'local',
+            'set_3' => 'global',
+            'closure_1' => 'closure global',
+            'closure_2' => 'closure local',
+            'closure_3' => 'closure global',
         ], $sandbox->getGlobals());
         $this->assertEquals(null, $result);
     }

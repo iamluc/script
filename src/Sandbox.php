@@ -103,10 +103,6 @@ class Sandbox
             return $this->evaluateMathNode($node);
         }
 
-        if ($node instanceof Node\FunctionNode) {
-            return $this->evaluateFunctionNode($node);
-        }
-
         if ($node instanceof Node\CallNode) {
             return $this->evaluateCallNode($node);
         }
@@ -147,12 +143,12 @@ class Sandbox
 
     private function evaluateAssignNode(Node\AssignNode $node)
     {
-        return $this->scopeStack->setVariable($node->getVariableName(), $this->evaluateNode($node->getValue()), $node->isLocal());
-    }
+        $value = $node->getValue();
+        if (!$value instanceof Node\FunctionNode) {
+            $value = $this->evaluateNode($node->getValue());
+        }
 
-    private function evaluateFunctionNode(Node\FunctionNode $node)
-    {
-        $this->scopeStack->setFunction($node->getName(), $node, $node->isLocal());
+        return $this->scopeStack->setVariable($node->getVariableName(), $value, $node->isLocal());
     }
 
     private function evaluateCallNode(Node\CallNode $node)

@@ -5,16 +5,15 @@ namespace Iamluc\Script;
 class Scope
 {
     private $variables = [];
-    private $functions = [];
 
-    public function setVariable($name, $value)
-    {
-        return $this->variables[$name] = $value;
-    }
-
-    public function hasVariable($name)
+    public function hasVariable($name): bool
     {
         return array_key_exists($name, $this->variables);
+    }
+
+    public function setVariable($name, $value): void
+    {
+        $this->variables[$name] = $value;
     }
 
     public function getVariable($name)
@@ -25,19 +24,5 @@ class Scope
     public function getVariables(): array
     {
         return $this->variables;
-    }
-
-    public function setFunction($name, Node\FunctionNode $node)
-    {
-        $this->functions[$name] = $node;
-    }
-
-    public function getFunction($name): Node\FunctionNode
-    {
-        if (!isset($this->functions[$name])) {
-            throw new \LogicException(sprintf('Function "%s" is not defined.', $name));
-        }
-
-        return $this->functions[$name];
     }
 }

@@ -60,7 +60,9 @@ class Parser
         }
 
         if ($token->is(Token::T_FUNCTION)) {
-            return $this->parseFunction($stream);
+            $name = $stream->expect(Token::T_NAME);
+
+            return new Node\AssignNode($name->getValue(), $this->parseFunction($stream), false);
         }
 
         if ($token->is(Token::T_IF)) {
@@ -213,10 +215,8 @@ class Parser
         return new Node\CallNode($name->getValue());
     }
 
-    private function parseFunction(TokenStream $stream, bool $local = false): Node\FunctionNode
+    private function parseFunction(TokenStream $stream): Node\FunctionNode
     {
-        $name = $stream->expect(Token::T_NAME);
-
         $stream->expect(Token::T_LEFT_PAREN); // FIXME: handle arguments
         while (!$stream->nextIs(Token::T_RIGHT_PAREN)) {
             $stream->peek();
@@ -226,7 +226,7 @@ class Parser
         $block = $this->parseBlock($stream, Token::T_END);
         $stream->expect(Token::T_END);
 
-        return new Node\FunctionNode($name->getValue(), null, $block, $local);
+        return new Node\FunctionNode(null, $block);
     }
 
     private function parseReturn(TokenStream $stream): Node\ReturnNode
@@ -239,9 +239,17 @@ class Parser
         return new Node\BreakNode();
     }
 
-    private function parseAssign(TokenStream $stream, Token $variable, $local = false): Node\AssignNode
+    private function parseAssign(TokenStream $stream, Token $name, $local = false): Node\AssignNode
     {
-        return new Node\AssignNode($variable->getValue(), $this->parseExpression($stream, $stream->peek()), $local);
+        if ($stream->nextIs(Token::T_FUNCTION)) {
+            $stream->expect(Token::T_FUNCTION); // Consume function
+
+            $value = $this->parseFunction($stream);
+        } else {
+            $value = $this->parseExpression($stream, $stream->peek());
+        }
+
+        return new Node\AssignNode($name->getValue(), $value, $local);
     }
 
     private function parseLocal(TokenStream $stream)
@@ -254,7 +262,9 @@ class Parser
             return $this->parseAssign($stream, $type, true);
         }
 
-        return $this->parseFunction($stream, true);
+        $name = $stream->expect(Token::T_NAME);
+
+        return new Node\AssignNode($name->getValue(), $this->parseFunction($stream), true);
     }
 
     private function convertToNode(Token $token): Node\Node

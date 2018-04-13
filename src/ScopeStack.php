@@ -33,7 +33,7 @@ class ScopeStack
         unset($this->stack[$this->index--]);
     }
 
-    public function root()
+    public function root(): Scope
     {
         if ($this->index < 0) {
             throw new \LogicException('There is no scope in stack.');
@@ -42,7 +42,7 @@ class ScopeStack
         return $this->stack[0];
     }
 
-    public function current()
+    public function current(): Scope
     {
         if ($this->index < 0) {
             throw new \LogicException('There is no scope in stack.');
@@ -89,11 +89,6 @@ class ScopeStack
         return array_filter($variables, function ($val) {
             return !$val instanceof Node\FunctionNode;
         });
-    }
-
-    public function setFunction($name, Node\FunctionNode $node, $local = false)
-    {
-        $this->setVariable($name, $node, $local);
     }
 
     public function getFunction($name): Node\FunctionNode
