@@ -35,7 +35,8 @@ class Parser
 
     public function parse(string $script)
     {
-        $stream = new TokenStream(new Lexer($script));
+        $lexer = new Lexer($script);
+        $stream = new TokenStream($lexer);
 
         return $this->parseBlock($stream, Token::T_EOF);
     }
@@ -70,6 +71,10 @@ class Parser
             return $this->parseWhile($stream);
         }
 
+        if ($token->is(Token::T_DO)) {
+            return $this->parseDo($stream);
+        }
+
         if ($token->is(Token::T_RETURN)) { // FIXME: avoid repetition "return return true"
             return $this->parseReturn($stream);
         }
@@ -78,13 +83,19 @@ class Parser
             return $this->parseBreak($stream);
         }
 
+        // Local
+        if ($token->is(Token::T_LOCAL)) {
+            return $this->parseLocal($stream);
+        }
+
         // Function call
         if ($token->isVariable() && $stream->nextIs(Token::T_LEFT_PAREN)) {
             return $this->parseCall($stream, $token);
         }
 
+        // Regular assignment (not local)
         if ($token->isVariable() && $stream->nextIs(Token::T_ASSIGN)) {
-            $stream->peek(); // consume "="
+            $stream->expect(Token::T_ASSIGN); // consume "="
 
             return $this->parseAssign($stream, $token);
         }
@@ -92,7 +103,6 @@ class Parser
         return $this->parseExpression($stream, $token);
     }
 
-    // FIXME: handle assignments in expression
     private function parseExpression(TokenStream $stream, Token $token, $precedence = 0)
     {
         switch ($token->getType()) {
@@ -144,14 +154,20 @@ class Parser
     private function parseWhile(TokenStream $stream)
     {
         $condition = $this->parseExpression($stream, $stream->peek());
-
         $stream->expect(Token::T_DO);
 
-        $body = $this->parseBlock($stream, [Token::T_END]);
-
+        $body = $this->parseBlock($stream, Token::T_END);
         $stream->expect(Token::T_END);
 
         return new Node\WhileNode($condition, $body);
+    }
+
+    private function parseDo(TokenStream $stream)
+    {
+        $body = $this->parseBlock($stream, Token::T_END);
+        $stream->expect(Token::T_END);
+
+        return $body;
     }
 
     private function parseIf(TokenStream $stream, $end = true)
@@ -163,7 +179,7 @@ class Parser
         $if = $this->parseBlock($stream, [Token::T_ELSE, Token::T_ELSEIF, Token::T_END]);
 
         while ($stream->nextIs([Token::T_ELSE, Token::T_ELSEIF])) {
-            $token = $stream->peek(); // consume else/elseif
+            $token = $stream->expect([Token::T_ELSE, Token::T_ELSEIF]); // consume else/elseif
 
             if ($token->is(Token::T_ELSE)) {
                 $else = $this->parseBlock($stream, Token::T_END);
@@ -189,22 +205,28 @@ class Parser
     private function parseCall(TokenStream $stream, Token $name): Node\CallNode
     {
         $stream->expect(Token::T_LEFT_PAREN); // FIXME: handle arguments
+        while (!$stream->nextIs(Token::T_RIGHT_PAREN)) {
+            $stream->peek();
+        }
         $stream->expect(Token::T_RIGHT_PAREN);
 
         return new Node\CallNode($name->getValue());
     }
 
-    private function parseFunction(TokenStream $stream): Node\FunctionNode
+    private function parseFunction(TokenStream $stream, bool $local = false): Node\FunctionNode
     {
         $name = $stream->expect(Token::T_NAME);
 
         $stream->expect(Token::T_LEFT_PAREN); // FIXME: handle arguments
+        while (!$stream->nextIs(Token::T_RIGHT_PAREN)) {
+            $stream->peek();
+        }
         $stream->expect(Token::T_RIGHT_PAREN);
 
         $block = $this->parseBlock($stream, Token::T_END);
         $stream->expect(Token::T_END);
 
-        return new Node\FunctionNode($name->getValue(), null, $block);
+        return new Node\FunctionNode($name->getValue(), null, $block, $local);
     }
 
     private function parseReturn(TokenStream $stream): Node\ReturnNode
@@ -217,9 +239,22 @@ class Parser
         return new Node\BreakNode();
     }
 
-    private function parseAssign(TokenStream $stream, Token $variable): Node\AssignNode
+    private function parseAssign(TokenStream $stream, Token $variable, $local = false): Node\AssignNode
     {
-        return new Node\AssignNode($variable->getValue(), $this->parseStatement($stream));
+        return new Node\AssignNode($variable->getValue(), $this->parseStatement($stream), $local);
+    }
+
+    private function parseLocal(TokenStream $stream)
+    {
+        $type = $stream->expect([Token::T_NAME, Token::T_FUNCTION]);
+
+        if ($type->is(Token::T_NAME)) {
+            $stream->expect(Token::T_ASSIGN);
+
+            return $this->parseAssign($stream, $type, true);
+        }
+
+        return $this->parseFunction($stream, true);
     }
 
     private function convertToNode(Token $token): Node\Node

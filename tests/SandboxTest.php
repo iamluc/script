@@ -531,4 +531,78 @@ EOS
             false
         ];
     }
+
+    public function testVariableScope()
+    {
+        $parser = new Parser();
+        $sandbox = new Sandbox();
+
+        # Adapted From Lua manual
+        $script = <<<EOS
+function print(val) end  -- fake function
+        
+x = 10                  -- global variable
+do                      -- new block
+    local x = x         -- new `x', with value 10
+    print(x)            --> 10
+    b = x
+    x = x+1
+    do                  -- another block
+        local x = x+1   -- another `x'
+        print(x)        --> 12
+        c = x
+    end
+    print(x)            --> 11
+    d = x
+end
+print(x)                --> 10  (the global one)
+
+return x
+EOS;
+
+        $block = $parser->parse($script);
+        $result = $sandbox->eval($block);
+
+        $this->assertEquals([
+            'x' => 10,
+            'b' => 10,
+            'c' => 12,
+            'd' => 11,
+        ], $sandbox->getGlobals());
+        $this->assertEquals(10, $result);
+    }
+
+    public function testFunctionScope()
+    {
+        $parser = new Parser();
+        $sandbox = new Sandbox();
+
+        # Adapted From Lua manual
+        $script = <<<EOS
+function set()
+    return "global"
+end
+
+call1 = set()
+
+do
+    local function set()
+        return "local"
+    end
+    call2 = set()
+end
+
+call3 = set()
+EOS;
+
+        $block = $parser->parse($script);
+        $result = $sandbox->eval($block);
+
+        $this->assertEquals([
+            'call1' => 'global',
+            'call2' => 'local',
+            'call3' => 'global',
+        ], $sandbox->getGlobals());
+        $this->assertEquals(null, $result);
+    }
 }

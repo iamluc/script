@@ -29,12 +29,14 @@ Iamluc\Script\Node\BlockNode {
       -value: Iamluc\Script\Node\ScalarNode {
         -value: "Salut"
       }
+      -local: false
     }
     1 => Iamluc\Script\Node\AssignNode {
       -var: "world"
       -value: Iamluc\Script\Node\ScalarNode {
         -value: "le monde !"
       }
+      -local: false
     }
   ]
 }
@@ -69,6 +71,7 @@ Iamluc\Script\Node\BlockNode {
             -value: Iamluc\Script\Node\ScalarNode {
               -value: "OK"
             }
+            -local: false
           }
         ]
       }
@@ -79,6 +82,7 @@ Iamluc\Script\Node\BlockNode {
             -value: Iamluc\Script\Node\ScalarNode {
               -value: "KO"
             }
+            -local: false
           }
         ]
       }

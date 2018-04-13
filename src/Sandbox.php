@@ -7,36 +7,60 @@ use Iamluc\Script\Exception\ReturnException;
 
 class Sandbox
 {
-    /** @var Scope */
-    private $globalScope;
+    /** @var ScopeStack */
+    private $scopeStack;
 
     public function eval(Node\BlockNode $main)
     {
-        $this->globalScope = new Scope();
+        $this->scopeStack = new ScopeStack();
 
-        return $this->evaluateBlockNode($main, true);
+        try {
+            return $this->evaluateBlockNode($main, true);
+        } catch (BreakException $e) {
+            throw new \LogicException('"break" not catched. Sandbox has a bug!');
+        } catch (ReturnException $e) {
+            throw new \LogicException('"return" not catched. Sandbox has a bug!');
+        }
     }
 
     public function getGlobals(): array
     {
-        return $this->globalScope->getVariables();
+        return $this->scopeStack->getVariables();
     }
 
+    /**
+     * @throws BreakException
+     * @throws ReturnException
+     */
     private function evaluateBlockNode(Node\BlockNode $block, $catchReturn = false)
     {
-        foreach ($block->getNodes() as $node) { // FIXME: create local scope
+        $this->scopeStack->push();
+
+        foreach ($block->getNodes() as $node) {
             try {
                 $this->evaluateNode($node);
             } catch (ReturnException $return) {
+                $this->scopeStack->pop();
+
                 if ($catchReturn) {
                     return $return->getValue();
                 }
 
                 throw $return;
+            } catch (BreakException $break) {
+                $this->scopeStack->pop();
+
+                throw $break;
             }
         }
+
+        $this->scopeStack->pop();
     }
 
+    /**
+     * @throws BreakException
+     * @throws ReturnException
+     */
     private function evaluateNode(Node\Node $node)
     {
         if ($node instanceof Node\ScalarNode) {
@@ -44,7 +68,7 @@ class Sandbox
         }
 
         if ($node instanceof Node\VariableNode) {
-            return $this->globalScope->getVariable($node->getVariable());
+            return $this->scopeStack->getVariable($node->getVariable());
         }
 
         if ($node instanceof Node\BlockNode) {
@@ -123,17 +147,17 @@ class Sandbox
 
     private function evaluateAssignNode(Node\AssignNode $node)
     {
-        return $this->globalScope->setVariable($node->getVariableName(), $this->evaluateNode($node->getValue()));
+        return $this->scopeStack->setVariable($node->getVariableName(), $this->evaluateNode($node->getValue()), $node->isLocal());
     }
 
     private function evaluateFunctionNode(Node\FunctionNode $node)
     {
-        $this->globalScope->setFunction($node->getName(), $node);
+        $this->scopeStack->setFunction($node->getName(), $node, $node->isLocal());
     }
 
     private function evaluateCallNode(Node\CallNode $node)
     {
-        $function = $this->globalScope->getFunction($node->getFunctionName());
+        $function = $this->scopeStack->getFunction($node->getFunctionName());
 
         return $this->evaluateBlockNode($function->getBlock(), true);
     }

@@ -10,6 +10,7 @@ class Lexer
     private static $stringToToken = [
         'function' => Token::T_FUNCTION,
         'return' => Token::T_RETURN,
+        'local' => Token::T_LOCAL,
 
         'if' => Token::T_IF,
         'then' => Token::T_THEN,
@@ -75,8 +76,13 @@ class Lexer
             return $this->next();
         }
 
+        // Ignore comments
+        if ($token = $this->match('/--(.*)/A')) {
+            return $this->next();
+        }
+
         // Boundary
-        if ($token = $this->match('/(and|or|if|then|elseif|else|end|while|do|function|return|break)\b/A')) {
+        if ($token = $this->match('/(and|or|if|then|elseif|else|end|while|do|function|return|break|local)\b/A')) {
             return new Token(self::$stringToToken[$token['match']], $token['match'], $token['cursor']);
         }
 

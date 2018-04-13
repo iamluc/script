@@ -12,6 +12,11 @@ class Scope
         return $this->variables[$name] = $value;
     }
 
+    public function hasVariable($name)
+    {
+        return array_key_exists($name, $this->variables);
+    }
+
     public function getVariable($name)
     {
         return $this->variables[$name] ?? null;
@@ -34,10 +39,5 @@ class Scope
         }
 
         return $this->functions[$name];
-    }
-
-    public function getFunctions(): array
-    {
-        return $this->functions;
     }
 }
