@@ -75,7 +75,7 @@ class Parser
             return $this->parseDo($stream);
         }
 
-        if ($token->is(Token::T_RETURN)) { // FIXME: avoid repetition "return return true"
+        if ($token->is(Token::T_RETURN)) {
             return $this->parseReturn($stream);
         }
 
@@ -231,7 +231,7 @@ class Parser
 
     private function parseReturn(TokenStream $stream): Node\ReturnNode
     {
-        return new Node\ReturnNode($this->parseStatement($stream));
+        return new Node\ReturnNode($this->parseExpression($stream, $stream->peek()));
     }
 
     private function parseBreak(TokenStream $stream): Node\BreakNode
@@ -241,7 +241,7 @@ class Parser
 
     private function parseAssign(TokenStream $stream, Token $variable, $local = false): Node\AssignNode
     {
-        return new Node\AssignNode($variable->getValue(), $this->parseStatement($stream), $local);
+        return new Node\AssignNode($variable->getValue(), $this->parseExpression($stream, $stream->peek()), $local);
     }
 
     private function parseLocal(TokenStream $stream)

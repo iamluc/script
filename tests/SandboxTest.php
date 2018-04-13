@@ -107,27 +107,6 @@ EOS
                 'world' => 'le monde !',
             ]
         ];
-
-        yield [
-            <<<EOS
-abc = def = 456
-EOS
-            , [
-                'abc' => 456,
-                'def' => 456,
-            ]
-        ];
-
-        yield [
-            <<<EOS
-abc = def = 456 + 4
-abc = false
-EOS
-            , [
-                'abc' => false,
-                'def' => 460,
-            ]
-        ];
     }
 
     /**
