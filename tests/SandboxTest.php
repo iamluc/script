@@ -571,7 +571,6 @@ EOS;
         $parser = new Parser();
         $sandbox = new Sandbox();
 
-        # Adapted From Lua manual
         $script = <<<EOS
 function set()
     return "global"
@@ -611,6 +610,32 @@ EOS;
             'closure_1' => 'closure global',
             'closure_2' => 'closure local',
             'closure_3' => 'closure global',
+        ], $sandbox->getGlobals());
+        $this->assertEquals(null, $result);
+    }
+
+    public function testGoto()
+    {
+        $parser = new Parser();
+        $sandbox = new Sandbox();
+
+        $script = <<<EOS
+x = 0
+::start::
+x = x + 1
+
+if x < 5 then
+    goto start
+end
+
+x = x + 100
+EOS;
+
+        $block = $parser->parse($script);
+        $result = $sandbox->eval($block);
+
+        $this->assertEquals([
+            'x' => 105,
         ], $sandbox->getGlobals());
         $this->assertEquals(null, $result);
     }

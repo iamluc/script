@@ -39,6 +39,7 @@ Iamluc\Script\Node\BlockNode {
       -local: false
     }
   ]
+  -labels: []
 }
 EOD
         , $node
@@ -74,6 +75,7 @@ Iamluc\Script\Node\BlockNode {
             -local: false
           }
         ]
+        -labels: []
       }
       -else: Iamluc\Script\Node\BlockNode {
         -nodes: array:1 [
@@ -85,9 +87,11 @@ Iamluc\Script\Node\BlockNode {
             -local: false
           }
         ]
+        -labels: []
       }
     }
   ]
+  -labels: []
 }
 EOD
             , $node

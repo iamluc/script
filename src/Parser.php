@@ -43,12 +43,18 @@ class Parser
 
     private function parseBlock(TokenStream $stream, $end): Node\BlockNode
     {
+        $labels = [];
         $nodes = [];
         while (!$stream->nextIs($end)) {
-            $nodes[] = $this->parseStatement($stream);
+            $node = $this->parseStatement($stream);
+            $nodes[] = $node;
+
+            if ($node instanceof Node\LabelNode) {
+                $labels[] = $node->getName();
+            }
         }
 
-        return new Node\BlockNode($nodes);
+        return new Node\BlockNode($nodes, $labels);
     }
 
     private function parseStatement(TokenStream $stream): Node\Node
@@ -83,6 +89,14 @@ class Parser
 
         if ($token->is(Token::T_BREAK)) {
             return $this->parseBreak($stream);
+        }
+
+        if ($token->is(Token::T_LABEL)) {
+            return $this->parseLabel($stream, $token);
+        }
+
+        if ($token->is(Token::T_GOTO)) {
+            return $this->parseGoto($stream);
         }
 
         // Local
@@ -237,6 +251,18 @@ class Parser
     private function parseBreak(TokenStream $stream): Node\BreakNode
     {
         return new Node\BreakNode();
+    }
+
+    private function parseLabel(TokenStream $stream, Token $label): Node\LabelNode
+    {
+        return new Node\LabelNode($label->getValue());
+    }
+
+    private function parseGoto(TokenStream $stream): Node\GotoNode
+    {
+        $target = $stream->expect(Token::T_NAME);
+
+        return new Node\GotoNode($target->getValue());
     }
 
     private function parseAssign(TokenStream $stream, Token $name, $local = false): Node\AssignNode

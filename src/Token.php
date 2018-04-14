@@ -24,6 +24,9 @@ class Token
     public const T_DO = 'do';
     public const T_BREAK = 'break';
 
+    public const T_GOTO = 'goto';
+    public const T_LABEL = 'label';
+
     public const T_ASSIGN = 'assign';                   // =
 
     public const T_PLUS = 'plus';                       // +

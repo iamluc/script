@@ -9,7 +9,6 @@ class Lexer
 
     private static $stringToToken = [
         'function' => Token::T_FUNCTION,
-        'return' => Token::T_RETURN,
         'local' => Token::T_LOCAL,
 
         'if' => Token::T_IF,
@@ -20,7 +19,10 @@ class Lexer
 
         'while' => Token::T_WHILE,
         'do' => Token::T_DO,
+
+        'return' => Token::T_RETURN,
         'break' => Token::T_BREAK,
+        'goto' => Token::T_GOTO,
 
         'true' => Token::T_TRUE,
         'false' => Token::T_FALSE,
@@ -82,8 +84,13 @@ class Lexer
         }
 
         // Boundary
-        if ($token = $this->match('/(and|or|if|then|elseif|else|end|while|do|function|return|break|local)\b/A')) {
+        if ($token = $this->match('/(and|or|if|then|elseif|else|end|while|do|function|local|return|break|goto)\b/A')) {
             return new Token(self::$stringToToken[$token['match']], $token['match'], $token['cursor']);
+        }
+
+        // Labels
+        if ($token = $this->match('/::([\w-_]+)::/A')) {
+            return new Token(Token::T_LABEL, $token['match'], $token['cursor']);
         }
 
         // No boundary

@@ -3,7 +3,9 @@
 namespace Iamluc\Script;
 
 use Iamluc\Script\Exception\BreakException;
+use Iamluc\Script\Exception\GotoException;
 use Iamluc\Script\Exception\ReturnException;
+use Iamluc\Script\Node\LabelNode;
 
 class Sandbox
 {
@@ -20,6 +22,8 @@ class Sandbox
             throw new \LogicException('"break" not catched. Sandbox has a bug!');
         } catch (ReturnException $e) {
             throw new \LogicException('"return" not catched. Sandbox has a bug!');
+        } catch (GotoException $e) {
+            throw new \LogicException('"goto" not catched. Sandbox has a bug!');
         }
     }
 
@@ -31,12 +35,24 @@ class Sandbox
     /**
      * @throws BreakException
      * @throws ReturnException
+     * @throws GotoException
      */
     private function evaluateBlockNode(Node\BlockNode $block, $catchReturn = false)
     {
         $this->scopeStack->push();
 
+        $target = null;
+
+blockstart:
         foreach ($block->getNodes() as $node) {
+            if (null !== $target) {
+                if (!$node instanceof LabelNode || $node->getName() !== $target) {
+                    continue;
+                }
+
+                $target = null;
+            }
+
             try {
                 $this->evaluateNode($node);
             } catch (ReturnException $return) {
@@ -51,7 +67,21 @@ class Sandbox
                 $this->scopeStack->pop();
 
                 throw $break;
+            } catch (GotoException $goto) {
+                if (!$block->hasLabel($goto->getTarget())) {
+                    $this->scopeStack->pop();
+
+                    throw $goto;
+                }
+
+                $target = $goto->getTarget();
+
+                goto blockstart;
             }
+        }
+
+        if (null !== $target) {
+            throw new \LogicException(sprintf('Unable to find label "%s" in the current block.', $target));
         }
 
         $this->scopeStack->pop();
@@ -60,6 +90,7 @@ class Sandbox
     /**
      * @throws BreakException
      * @throws ReturnException
+     * @throws GotoException
      */
     private function evaluateNode(Node\Node $node)
     {
@@ -115,7 +146,11 @@ class Sandbox
             throw new BreakException();
         }
 
-        if ($node instanceof Node\NoOperationNode) {
+        if ($node instanceof Node\GotoNode) {
+            throw new GotoException($node->getTarget());
+        }
+
+        if ($node instanceof Node\LabelNode || $node instanceof Node\NoOperationNode) {
             return;
         }
 
