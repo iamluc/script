@@ -2,7 +2,7 @@
 
 namespace Iamluc\Script\Node;
 
-class LogicalNode extends Node
+class BinaryNode extends Node
 {
     private $left;
     private $operator;

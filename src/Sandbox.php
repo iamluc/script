@@ -106,20 +106,16 @@ blockstart:
             return $this->evaluateBlockNode($node);
         }
 
-        if ($node instanceof Node\NegativeNode) {
-            return -$this->evaluateNode($node->getValue());
+        if ($node instanceof Node\UnaryNode) {
+            return $this->evaluateUnaryNode($node);
         }
 
         if ($node instanceof Node\AssignNode) {
             return $this->evaluateAssignNode($node);
         }
 
-        if ($node instanceof Node\ComparisonNode) {
-            return $this->evaluateComparisonNode($node);
-        }
-
-        if ($node instanceof Node\LogicalNode) {
-            return $this->evaluateLogicalNode($node);
+        if ($node instanceof Node\BinaryNode) {
+            return $this->evaluateBinaryNode($node);
         }
 
         if ($node instanceof Node\ConditionalNode) {
@@ -130,16 +126,12 @@ blockstart:
             return $this->evaluateWhileNode($node);
         }
 
-        if ($node instanceof Node\MathNode) {
-            return $this->evaluateMathNode($node);
-        }
-
         if ($node instanceof Node\CallNode) {
             return $this->evaluateCallNode($node);
         }
 
         if ($node instanceof Node\ReturnNode) {
-            throw new ReturnException($this->evaluateReturnNode($node));
+            throw new ReturnException($this->evaluateNode($node->getValue()));
         }
 
         if ($node instanceof Node\BreakNode) {
@@ -193,65 +185,56 @@ blockstart:
         return $this->evaluateBlockNode($function->getBlock(), true);
     }
 
-    private function evaluateReturnNode(Node\ReturnNode $node)
+    private function evaluateBinaryNode(Node\BinaryNode $node)
     {
-        return $this->evaluateNode($node->getValue());
-    }
-
-    private function evaluateComparisonNode(Node\ComparisonNode $comparison)
-    {
-        switch ($comparison->getOperator()) {
+        switch ($node->getOperator()) {
             case '==':
-                return $this->evaluateNode($comparison->getLeft()) === $this->evaluateNode($comparison->getRight());
+                return $this->evaluateNode($node->getLeft()) === $this->evaluateNode($node->getRight());
 
             case '~=':
-                return $this->evaluateNode($comparison->getLeft()) !== $this->evaluateNode($comparison->getRight());
+                return $this->evaluateNode($node->getLeft()) !== $this->evaluateNode($node->getRight());
 
             case '>':
-                return $this->evaluateNode($comparison->getLeft()) > $this->evaluateNode($comparison->getRight());
+                return $this->evaluateNode($node->getLeft()) > $this->evaluateNode($node->getRight());
 
             case '>=':
-                return $this->evaluateNode($comparison->getLeft()) >= $this->evaluateNode($comparison->getRight());
+                return $this->evaluateNode($node->getLeft()) >= $this->evaluateNode($node->getRight());
 
             case '<':
-                return $this->evaluateNode($comparison->getLeft()) < $this->evaluateNode($comparison->getRight());
+                return $this->evaluateNode($node->getLeft()) < $this->evaluateNode($node->getRight());
 
             case '<=':
-                return $this->evaluateNode($comparison->getLeft()) <= $this->evaluateNode($comparison->getRight());
-        }
+                return $this->evaluateNode($node->getLeft()) <= $this->evaluateNode($node->getRight());
 
-        throw new \LogicException(sprintf('Cannot evaluate comparison node with operator "%s"', $comparison->getOperator()));
-    }
-
-    private function evaluateLogicalNode(Node\LogicalNode $logical)
-    {
-        switch ($logical->getOperator()) {
             case 'and':
-                return $this->evaluateNode($logical->getLeft()) && $this->evaluateNode($logical->getRight());
+                return $this->evaluateNode($node->getLeft()) && $this->evaluateNode($node->getRight());
 
             case 'or':
-                return $this->evaluateNode($logical->getLeft()) || $this->evaluateNode($logical->getRight());
-        }
+                return $this->evaluateNode($node->getLeft()) || $this->evaluateNode($node->getRight());
 
-        throw new \LogicException(sprintf('Cannot evaluate logical node with operator "%s"', $logical->getOperator()));
-    }
-
-    private function evaluateMathNode(Node\MathNode $comparison)
-    {
-        switch ($comparison->getOperator()) {
             case '+':
-                return $this->evaluateNode($comparison->getLeft()) + $this->evaluateNode($comparison->getRight());
+                return $this->evaluateNode($node->getLeft()) + $this->evaluateNode($node->getRight());
 
             case '-':
-                return $this->evaluateNode($comparison->getLeft()) - $this->evaluateNode($comparison->getRight());
+                return $this->evaluateNode($node->getLeft()) - $this->evaluateNode($node->getRight());
 
             case '*':
-                return $this->evaluateNode($comparison->getLeft()) * $this->evaluateNode($comparison->getRight());
+                return $this->evaluateNode($node->getLeft()) * $this->evaluateNode($node->getRight());
 
             case '/':
-                return $this->evaluateNode($comparison->getLeft()) / $this->evaluateNode($comparison->getRight());
+                return $this->evaluateNode($node->getLeft()) / $this->evaluateNode($node->getRight());
         }
 
-        throw new \LogicException(sprintf('Cannot evaluate math node with operator "%s"', $comparison->getOperator()));
+        throw new \LogicException(sprintf('Cannot evaluate binary node with operator "%s"', $node->getOperator()));
+    }
+
+    private function evaluateUnaryNode(Node\UnaryNode $node)
+    {
+        switch ($node->getOperator()) {
+            case '-':
+                return -$this->evaluateNode($node->getValue());
+        }
+
+        throw new \LogicException(sprintf('Cannot evaluate unary node with operator "%s"', $node->getOperator()));
     }
 }

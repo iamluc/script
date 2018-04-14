@@ -128,7 +128,7 @@ class Parser
                 break;
 
             case Token::T_MINUS: // negative
-                $left = new Node\NegativeNode($this->parseExpression($stream, $stream->peek(), 100));
+                $left = new Node\UnaryNode($this->parseExpression($stream, $stream->peek(), 100), '-');
                 break;
 
             case Token::T_PLUS: // positive, ignore
@@ -155,13 +155,7 @@ class Parser
             $operation = $stream->peek();
             $right = $this->parseExpression($stream, $stream->peek(), $this->precedenceMap[$operation->getType()]);
 
-            if ($operation->isMathOperator()) {
-                $left = new Node\MathNode($left, $operation->getValue(), $right);
-            } elseif ($operation->isComparator()) {
-                $left = new Node\ComparisonNode($left, $operation->getValue(), $right);
-            } else {
-                $left = new Node\LogicalNode($left, $operation->getValue(), $right);
-            }
+            $left = new Node\BinaryNode($left, $operation->getValue(), $right);
         }
 
         return $left;
