@@ -64,14 +64,8 @@ class Parser
     {
         $token = $this->stream->peek();
 
-        if ($token->isEOF()) {
-            throw new \LogicException('Unexptected end of file.');
-        }
-
         if ($token->is(Token::T_FUNCTION)) {
-            $name = $this->stream->expect(Token::T_NAME);
-
-            return new Node\AssignNode([$name->getValue() => $this->parseFunction()], false);
+            return $this->parseNamedFunction();
         }
 
         if ($token->is(Token::T_IF)) {
@@ -251,6 +245,13 @@ class Parser
         $this->stream->expect(Token::T_END);
 
         return new Node\FunctionNode(null, $block);
+    }
+
+    private function parseNamedFunction(): Node\AssignNode
+    {
+        $name = $this->stream->expect(Token::T_NAME);
+
+        return new Node\AssignNode([$name->getValue() => $this->parseFunction()], false);
     }
 
     private function parseReturn(): Node\ReturnNode
