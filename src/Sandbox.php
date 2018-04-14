@@ -255,6 +255,9 @@ blockstart:
 
             case '/':
                 return $this->evaluateNode($node->getLeft()) / $this->evaluateNode($node->getRight());
+
+            case '..':
+                return $this->evaluateNode($node->getLeft()) . $this->evaluateNode($node->getRight());
         }
 
         throw new \LogicException(sprintf('Cannot evaluate binary node with operator "%s"', $node->getOperator()));

@@ -21,7 +21,7 @@ class Parser
         Token::T_LESS_EQUAL => 20,
         Token::T_GREATER_EQUAL => 20,
 
-        // TODO: .. => 30
+        Token::T_DOUBLE_DOT => 30,
 
         Token::T_PLUS => 40,
         Token::T_MINUS => 40,

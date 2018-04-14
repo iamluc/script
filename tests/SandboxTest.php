@@ -60,6 +60,10 @@ class SandboxTest extends TestCase
         yield ['1==1+1 or 2==2*1 and true', true];
         yield ['1==1+1 or 2==2*1 and false', false];
 
+        yield ['"Hi".." my ".."friend"', 'Hi my friend'];
+        yield ['12 .. " = twelve"', '12 = twelve'];
+        yield ['(2*4) .." tests OK"', '8 tests OK'];
+
         yield [
             <<<EOS
 mult = 10
@@ -127,10 +131,10 @@ EOS
             <<<EOS
 local hello, world = "Salut", "le monde !"
 
-return world
+return hello.." (wait for it) "..world
 EOS
             , [],
-            'le monde !'
+            'Salut (wait for it) le monde !'
         ];
     }
 

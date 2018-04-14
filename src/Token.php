@@ -49,6 +49,7 @@ class Token
     public const T_LEFT_PAREN = 'left parenthesis';     // (
     public const T_RIGHT_PAREN = 'right parenthesis';   // )
     public const T_COMMA = 'comma';                     // ,
+    public const T_DOUBLE_DOT = 'double dot';           // ..
 
     public const T_NAME = 'name';
 
