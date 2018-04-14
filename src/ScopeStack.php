@@ -15,9 +15,13 @@ class ScopeStack
         $this->push();
     }
 
-    public function push()
+    public function push(Scope $scope = null)
     {
-        $this->stack[++$this->index] = new Scope();
+        if (null == $scope) {
+            $scope = new Scope();
+        }
+
+        $this->stack[++$this->index] = $scope;
     }
 
     public function pop()

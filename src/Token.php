@@ -23,6 +23,8 @@ class Token
     public const T_DO = 'do';
     public const T_REPEAT = 'repeat';
     public const T_UNTIL = 'until';
+    public const T_FOR = 'for';
+    public const T_IN = 'in';
 
     public const T_RETURN = 'return';
     public const T_BREAK = 'break';

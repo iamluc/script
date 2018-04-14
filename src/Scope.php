@@ -4,7 +4,12 @@ namespace Iamluc\Script;
 
 class Scope
 {
-    private $variables = [];
+    private $variables;
+
+    public function __construct(array $variables = [])
+    {
+        $this->variables = $variables;
+    }
 
     public function hasVariable($name): bool
     {

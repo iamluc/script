@@ -712,4 +712,82 @@ EOS;
         ], $sandbox->getGlobals());
         $this->assertEquals('Ok', $result);
     }
+
+    /**
+     * @dataProvider provideFor
+     */
+    public function testFor($script, $expectedGlobals, $expectedResult = null)
+    {
+        $parser = new Parser();
+        $sandbox = new Sandbox();
+
+        $block = $parser->parse($script);
+        $result = $sandbox->eval($block);
+
+        $this->assertEquals($expectedGlobals, $sandbox->getGlobals());
+        $this->assertEquals($expectedResult, $result);
+    }
+
+    public function provideFor()
+    {
+        yield [
+            <<<EOS
+res = 0
+for v = 3, 5 do
+    res = res + v
+end
+EOS
+            , [
+                'res' => 12,
+            ],
+        ];
+
+        yield [
+            <<<EOS
+res = 0
+for v = 5, 3 do
+    res = res + v
+end
+EOS
+            , [
+                'res' => 0,
+            ],
+        ];
+
+        yield [
+            <<<EOS
+res = 0
+for v = 1, 3, -1 do
+    res = res + v
+end
+EOS
+            , [
+                'res' => 0,
+            ],
+        ];
+
+        yield [
+            <<<EOS
+res = 0
+for v = 1, 3, 1 do
+    res = res + v
+end
+EOS
+            , [
+                'res' => 6,
+            ],
+        ];
+
+        yield [
+            <<<EOS
+res = 0
+for v = 2*2-1, 6-1, 1+1 do
+    res = res + v
+end
+EOS
+            , [
+                'res' => 8,
+            ],
+        ];
+    }
 }

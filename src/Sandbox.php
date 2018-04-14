@@ -38,9 +38,13 @@ class Sandbox
      * @throws ReturnException
      * @throws GotoException
      */
-    private function evaluateBlockNode(Node\BlockNode $block, $catchReturn = false, $scoped = true)
+    private function evaluateBlockNode(Node\BlockNode $block, $catchReturn = false, $scope = true)
     {
-        $scoped and $this->scopeStack->push();
+        if (true === $scope) {
+            $scope = new Scope();
+        }
+
+        $scope and $this->scopeStack->push($scope);
 
         $target = null;
 
@@ -57,7 +61,7 @@ blockstart:
             try {
                 $this->evaluateNode($node);
             } catch (ReturnException $return) {
-                $scoped and $this->scopeStack->pop();
+                $scope and $this->scopeStack->pop();
 
                 if ($catchReturn) {
                     return $return->getValue();
@@ -65,12 +69,12 @@ blockstart:
 
                 throw $return;
             } catch (BreakException $break) {
-                $scoped and $this->scopeStack->pop();
+                $scope and $this->scopeStack->pop();
 
                 throw $break;
             } catch (GotoException $goto) {
                 if (!$block->hasLabel($goto->getTarget())) {
-                    $scoped and $this->scopeStack->pop();
+                    $scope and $this->scopeStack->pop();
 
                     throw $goto;
                 }
@@ -85,7 +89,7 @@ blockstart:
             throw new \LogicException(sprintf('Unable to find label "%s" in the current block.', $target));
         }
 
-        $scoped and $this->scopeStack->pop();
+        $scope and $this->scopeStack->pop();
     }
 
     /**
@@ -129,6 +133,10 @@ blockstart:
 
         if ($node instanceof Node\RepeatNode) {
             return $this->evaluateRepeatNode($node);
+        }
+
+        if ($node instanceof Node\ForNode) {
+            return $this->evaluateForNode($node);
         }
 
         if ($node instanceof Node\CallNode) {
@@ -199,8 +207,43 @@ blockstart:
         $this->scopeStack->pop();
     }
 
+    private function evaluateForNode(Node\ForNode $node)
+    {
+        $initial = $this->evaluateNode($node->getInitial());
+        $limit = $this->evaluateNode($node->getLimit());
+        $step = $this->evaluateNode($node->getStep());
+
+        if (!is_numeric($initial) || !is_numeric($limit) || !is_numeric($step)) {
+            throw new \LogicException('Numerical "for" loop expects numeric values for "initial", "limit" and "step".');
+        }
+
+        if ($initial < $limit) {
+            $cond = function ($i, $limit) { return $i <= $limit; };
+            if ($step <= 0) {
+                return;
+            }
+        } else {
+            $cond = function ($i, $limit) { return $i >= $limit; };
+            if ($step >= 0) {
+                return;
+            }
+        }
+
+        for ($i = $initial; $cond($i, $limit); $i += $step) {
+            try {
+                $this->evaluateBlockNode($node->getBlock(), false, new Scope([$node->getVariable() => $i]));
+            } catch (BreakException $break) {
+                return;
+            }
+        }
+    }
+
+    /**
+     * @see https://www.lua.org/manual/5.3/manual.html#3.3.3
+     */
     private function evaluateAssignNode(Node\AssignNode $node)
     {
+        // FIXME: value evaluation order
         foreach ($node->getAssignments() as $name => $value) {
             if (!$value instanceof Node\FunctionNode) {
                 $value = $this->evaluateNode($value);

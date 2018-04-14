@@ -80,6 +80,10 @@ class Parser
             return $this->parseRepeat();
         }
 
+        if ($token->is(Token::T_FOR)) {
+            return $this->parseFor();
+        }
+
         if ($token->is(Token::T_DO)) {
             return $this->parseDo();
         }
@@ -181,6 +185,33 @@ class Parser
         $condition = $this->parseExpression();
 
         return new Node\RepeatNode($condition, $body);
+    }
+
+    private function parseFor()
+    {
+        $var = $this->stream->expect(Token::T_NAME);
+        $type = $this->stream->expect([Token::T_ASSIGN, Token::T_IN]);
+
+        $expr = [$this->parseExpression()];
+        while ($this->stream->nextIs(Token::T_COMMA)) {
+            $this->stream->expect(Token::T_COMMA);
+            $expr[] = $this->parseExpression();
+        }
+
+        if ($type->is(Token::T_ASSIGN) && (count($expr) < 2 || count($expr) > 3)) {
+            throw new \LogicException('Numerical "for" loop expects 2 or 3 expressions.');
+        }
+
+        $this->stream->expect(Token::T_DO);
+
+        $body = $this->parseBlock(Token::T_END);
+        $this->stream->expect(Token::T_END);
+
+        if ($type->is(Token::T_ASSIGN)) {
+            return new Node\ForNode($var->getValue(), $body, $expr[0], $expr[1], $expr[2] ?? new Node\ScalarNode(1));
+        }
+
+        throw new \LogicException('"for in" not implemented yet!');
     }
 
     private function parseDo()
@@ -292,6 +323,7 @@ class Parser
             $values[] = $this->readAssignValue();
         }
 
+        // FIXME: https://www.lua.org/manual/5.3/manual.html#3.3.3
         if (\count($vars) !== \count($values)) {
             throw new \LogicException(sprintf('Invalid assignment. Got "%d" value(s) for "%d" name(s) ("%s").', \count($values), \count($vars), implode('", "', $vars)));
         }
