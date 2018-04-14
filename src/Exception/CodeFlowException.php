@@ -2,6 +2,6 @@
 
 namespace Iamluc\Script\Exception;
 
-class BreakException extends CodeFlowException
+class CodeFlowException extends \Exception
 {
 }

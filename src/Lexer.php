@@ -19,6 +19,8 @@ class Lexer
 
         'while' => Token::T_WHILE,
         'do' => Token::T_DO,
+        'repeat' => Token::T_REPEAT,
+        'until' => Token::T_UNTIL,
 
         'return' => Token::T_RETURN,
         'break' => Token::T_BREAK,
@@ -84,7 +86,7 @@ class Lexer
         }
 
         // Boundary
-        if ($token = $this->match('/(and|or|if|then|elseif|else|end|while|do|function|local|return|break|goto)\b/A')) {
+        if ($token = $this->match('/(and|or|if|then|elseif|else|end|while|do|repeat|until|function|local|return|break|goto)\b/A')) {
             return new Token(self::$stringToToken[$token['match']], $token['match'], $token['cursor']);
         }
 

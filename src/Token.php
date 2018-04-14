@@ -11,7 +11,6 @@ class Token
     public const T_NIL = 'nil';
 
     public const T_FUNCTION = 'function';
-    public const T_RETURN = 'return';
     public const T_LOCAL = 'local';
 
     public const T_IF = 'if';
@@ -22,8 +21,11 @@ class Token
 
     public const T_WHILE = 'while';
     public const T_DO = 'do';
-    public const T_BREAK = 'break';
+    public const T_REPEAT = 'repeat';
+    public const T_UNTIL = 'until';
 
+    public const T_RETURN = 'return';
+    public const T_BREAK = 'break';
     public const T_GOTO = 'goto';
     public const T_LABEL = 'label';
 

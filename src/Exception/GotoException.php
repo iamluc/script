@@ -2,7 +2,7 @@
 
 namespace Iamluc\Script\Exception;
 
-class GotoException extends \Exception
+class GotoException extends CodeFlowException
 {
     private $target;
 

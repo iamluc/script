@@ -3,6 +3,7 @@
 namespace Iamluc\Script;
 
 use Iamluc\Script\Exception\BreakException;
+use Iamluc\Script\Exception\CodeFlowException;
 use Iamluc\Script\Exception\GotoException;
 use Iamluc\Script\Exception\ReturnException;
 use Iamluc\Script\Node\LabelNode;
@@ -37,9 +38,9 @@ class Sandbox
      * @throws ReturnException
      * @throws GotoException
      */
-    private function evaluateBlockNode(Node\BlockNode $block, $catchReturn = false)
+    private function evaluateBlockNode(Node\BlockNode $block, $catchReturn = false, $scoped = true)
     {
-        $this->scopeStack->push();
+        $scoped and $this->scopeStack->push();
 
         $target = null;
 
@@ -56,7 +57,7 @@ blockstart:
             try {
                 $this->evaluateNode($node);
             } catch (ReturnException $return) {
-                $this->scopeStack->pop();
+                $scoped and $this->scopeStack->pop();
 
                 if ($catchReturn) {
                     return $return->getValue();
@@ -64,12 +65,12 @@ blockstart:
 
                 throw $return;
             } catch (BreakException $break) {
-                $this->scopeStack->pop();
+                $scoped and $this->scopeStack->pop();
 
                 throw $break;
             } catch (GotoException $goto) {
                 if (!$block->hasLabel($goto->getTarget())) {
-                    $this->scopeStack->pop();
+                    $scoped and $this->scopeStack->pop();
 
                     throw $goto;
                 }
@@ -84,7 +85,7 @@ blockstart:
             throw new \LogicException(sprintf('Unable to find label "%s" in the current block.', $target));
         }
 
-        $this->scopeStack->pop();
+        $scoped and $this->scopeStack->pop();
     }
 
     /**
@@ -126,6 +127,10 @@ blockstart:
             return $this->evaluateWhileNode($node);
         }
 
+        if ($node instanceof Node\RepeatNode) {
+            return $this->evaluateRepeatNode($node);
+        }
+
         if ($node instanceof Node\CallNode) {
             return $this->evaluateCallNode($node);
         }
@@ -159,13 +164,39 @@ blockstart:
 
     private function evaluateWhileNode(Node\WhileNode $node)
     {
-        while ($value = $this->evaluateNode($node->getCondition())) {
+        while ($this->evaluateNode($node->getCondition())) {
             try {
                 $this->evaluateBlockNode($node->getBlock());
             } catch (BreakException $break) {
                 return;
             }
         }
+    }
+
+    private function evaluateRepeatNode(Node\RepeatNode $node)
+    {
+        $first = true;
+        do {
+            try {
+                if (!$first) {
+                    $this->scopeStack->pop();
+                }
+                $first = false;
+
+                $this->scopeStack->push();
+
+                // We manage the scope here as the condition can use local variables
+                $this->evaluateBlockNode($node->getBlock(), false, false);
+            } catch (CodeFlowException $flowException) {
+                $this->scopeStack->pop();
+
+                if ($flowException instanceof BreakException) {
+                    return;
+                }
+            }
+        } while ($this->evaluateNode($node->getCondition()));
+
+        $this->scopeStack->pop();
     }
 
     private function evaluateAssignNode(Node\AssignNode $node)

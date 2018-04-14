@@ -639,4 +639,52 @@ EOS;
         ], $sandbox->getGlobals());
         $this->assertEquals(null, $result);
     }
+
+    public function testRepeatUntil()
+    {
+        $parser = new Parser();
+        $sandbox = new Sandbox();
+
+        $script = <<<EOS
+x = 0
+repeat
+    x = x + 2
+until x < 3
+
+toto = "cool"
+EOS;
+
+        $block = $parser->parse($script);
+        $result = $sandbox->eval($block);
+
+        $this->assertEquals([
+            'x' => 4,
+            'toto' => 'cool',
+        ], $sandbox->getGlobals());
+        $this->assertEquals(null, $result);
+    }
+
+    public function testRepeatUntilLocalVar()
+    {
+        $parser = new Parser();
+        $sandbox = new Sandbox();
+
+        $script = <<<EOS
+x = 0
+repeat
+    local loc = x
+    x = x + 2
+until loc < 3
+
+return "Ok"
+EOS;
+
+        $block = $parser->parse($script);
+        $result = $sandbox->eval($block);
+
+        $this->assertEquals([
+            'x' => 6,
+        ], $sandbox->getGlobals());
+        $this->assertEquals('Ok', $result);
+    }
 }

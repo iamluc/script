@@ -2,7 +2,7 @@
 
 namespace Iamluc\Script\Exception;
 
-class ReturnException extends \Exception
+class ReturnException extends CodeFlowException
 {
     private $value;
 
