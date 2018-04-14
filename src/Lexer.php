@@ -48,6 +48,7 @@ class Lexer
 
         '(' => Token::T_LEFT_PAREN,
         ')' => Token::T_RIGHT_PAREN,
+        ',' => Token::T_COMMA,
     ];
 
     public function __construct(string $stream)
@@ -96,7 +97,7 @@ class Lexer
         }
 
         // No boundary
-        if ($token = $this->match('/(==|~=|<=|<|>=|>|=|\+|-|\*|\/|\(|\))/A')) {
+        if ($token = $this->match('/(==|~=|<=|<|>=|>|=|\+|-|\*|\/|\(|\)|,)/A')) {
             return new Token(self::$stringToToken[$token['match']], $token['match'], $token['cursor']);
         }
 

@@ -201,12 +201,13 @@ blockstart:
 
     private function evaluateAssignNode(Node\AssignNode $node)
     {
-        $value = $node->getValue();
-        if (!$value instanceof Node\FunctionNode) {
-            $value = $this->evaluateNode($node->getValue());
-        }
+        foreach ($node->getAssignments() as $name => $value) {
+            if (!$value instanceof Node\FunctionNode) {
+                $value = $this->evaluateNode($value);
+            }
 
-        return $this->scopeStack->setVariable($node->getVariableName(), $value, $node->isLocal());
+            $this->scopeStack->setVariable($name, $value, $node->isLocal());
+        }
     }
 
     private function evaluateCallNode(Node\CallNode $node)

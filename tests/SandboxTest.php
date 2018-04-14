@@ -90,13 +90,14 @@ EOS
     /**
      * @dataProvider provideAssign
      */
-    public function testAssign($script, $expected)
+    public function testAssign($script, $expectedGlobals, $expectedResult = null)
     {
         $parser = new Parser();
         $sandbox = new Sandbox();
-        $sandbox->eval($parser->parse($script));
+        $result = $sandbox->eval($parser->parse($script));
 
-        $this->assertEquals($expected, $sandbox->getGlobals());
+        $this->assertEquals($expectedGlobals, $sandbox->getGlobals());
+        $this->assertEquals($expectedResult, $result);
     }
 
     public function provideAssign()
@@ -110,6 +111,26 @@ EOS
                 'hello' => 'Salut',
                 'world' => 'le monde !',
             ]
+        ];
+
+        yield [
+            <<<EOS
+hello, world = "Salut", "le monde !"
+EOS
+            , [
+                'hello' => 'Salut',
+                'world' => 'le monde !',
+            ]
+        ];
+
+        yield [
+            <<<EOS
+local hello, world = "Salut", "le monde !"
+
+return world
+EOS
+            , [],
+            'le monde !'
         ];
     }
 

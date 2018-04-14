@@ -71,7 +71,7 @@ class Parser
         if ($token->is(Token::T_FUNCTION)) {
             $name = $this->stream->expect(Token::T_NAME);
 
-            return new Node\AssignNode($name->getValue(), $this->parseFunction(), false);
+            return new Node\AssignNode([$name->getValue() => $this->parseFunction()], false);
         }
 
         if ($token->is(Token::T_IF)) {
@@ -117,9 +117,7 @@ class Parser
         }
 
         // Regular assignment (not local)
-        if ($token->isVariable() && $this->stream->nextIs(Token::T_ASSIGN)) {
-            $this->stream->expect(Token::T_ASSIGN); // consume "="
-
+        if ($token->isVariable() && $this->stream->nextIs([Token::T_ASSIGN, Token::T_COMMA])) {
             return $this->parseAssign($token);
         }
 
@@ -277,17 +275,38 @@ class Parser
         return new Node\GotoNode($target->getValue());
     }
 
-    private function parseAssign(Token $name, $local = false): Node\AssignNode
+    private function parseAssign(Token $first, $local = false): Node\AssignNode
+    {
+        $vars = [$first->getValue()];
+        while ($this->stream->nextIs(Token::T_COMMA)) {
+            $this->stream->expect(Token::T_COMMA);
+            $vars[] = $this->stream->expect(Token::T_NAME)->getValue();
+        }
+
+        $this->stream->expect(Token::T_ASSIGN);
+
+        $values = [$this->readAssignValue()];
+        while ($this->stream->nextIs(Token::T_COMMA)) {
+            $this->stream->expect(Token::T_COMMA);
+            $values[] = $this->readAssignValue();
+        }
+
+        if (\count($vars) !== \count($values)) {
+            throw new \LogicException(sprintf('Invalid assignment. Got "%d" value(s) for "%d" name(s) ("%s").', \count($values), \count($vars), implode('", "', $vars)));
+        }
+
+        return new Node\AssignNode(array_combine($vars, $values), $local);
+    }
+
+    private function readAssignValue()
     {
         if ($this->stream->nextIs(Token::T_FUNCTION)) {
             $this->stream->expect(Token::T_FUNCTION); // Consume function
 
-            $value = $this->parseFunction();
-        } else {
-            $value = $this->parseExpression();
+            return $this->parseFunction();
         }
 
-        return new Node\AssignNode($name->getValue(), $value, $local);
+        return $this->parseExpression();
     }
 
     private function parseLocal()
@@ -295,14 +314,12 @@ class Parser
         $type = $this->stream->expect([Token::T_NAME, Token::T_FUNCTION]);
 
         if ($type->is(Token::T_NAME)) {
-            $this->stream->expect(Token::T_ASSIGN);
-
             return $this->parseAssign($type, true);
         }
 
         $name = $this->stream->expect(Token::T_NAME);
 
-        return new Node\AssignNode($name->getValue(), $this->parseFunction(), true);
+        return new Node\AssignNode([$name->getValue() => $this->parseFunction()], true);
     }
 
     private function convertToNode(Token $token): Node\Node

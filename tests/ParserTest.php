@@ -18,24 +18,39 @@ class ParserTest extends TestCase
         $node = $parser->parse(<<<EOS
 hello = "Salut"
 world = "le monde !"
+
+mult1, mult2 = 123, "abc"
 EOS
 );
 
         $this->assertDumpEquals(<<<EOD
 Iamluc\Script\Node\BlockNode {
-  -nodes: array:2 [
+  -nodes: array:3 [
     0 => Iamluc\Script\Node\AssignNode {
-      -var: "hello"
-      -value: Iamluc\Script\Node\ScalarNode {
-        -value: "Salut"
-      }
+      -assignments: array:1 [
+        "hello" => Iamluc\Script\Node\ScalarNode {
+          -value: "Salut"
+        }
+      ]
       -local: false
     }
     1 => Iamluc\Script\Node\AssignNode {
-      -var: "world"
-      -value: Iamluc\Script\Node\ScalarNode {
-        -value: "le monde !"
-      }
+      -assignments: array:1 [
+        "world" => Iamluc\Script\Node\ScalarNode {
+          -value: "le monde !"
+        }
+      ]
+      -local: false
+    }
+    2 => Iamluc\Script\Node\AssignNode {
+      -assignments: array:2 [
+        "mult1" => Iamluc\Script\Node\ScalarNode {
+          -value: 123.0
+        }
+        "mult2" => Iamluc\Script\Node\ScalarNode {
+          -value: "abc"
+        }
+      ]
       -local: false
     }
   ]
@@ -68,10 +83,11 @@ Iamluc\Script\Node\BlockNode {
       -if: Iamluc\Script\Node\BlockNode {
         -nodes: array:1 [
           0 => Iamluc\Script\Node\AssignNode {
-            -var: "res"
-            -value: Iamluc\Script\Node\ScalarNode {
-              -value: "OK"
-            }
+            -assignments: array:1 [
+              "res" => Iamluc\Script\Node\ScalarNode {
+                -value: "OK"
+              }
+            ]
             -local: false
           }
         ]
@@ -80,10 +96,11 @@ Iamluc\Script\Node\BlockNode {
       -else: Iamluc\Script\Node\BlockNode {
         -nodes: array:1 [
           0 => Iamluc\Script\Node\AssignNode {
-            -var: "res"
-            -value: Iamluc\Script\Node\ScalarNode {
-              -value: "KO"
-            }
+            -assignments: array:1 [
+              "res" => Iamluc\Script\Node\ScalarNode {
+                -value: "KO"
+              }
+            ]
             -local: false
           }
         ]

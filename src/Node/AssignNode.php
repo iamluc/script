@@ -4,25 +4,18 @@ namespace Iamluc\Script\Node;
 
 class AssignNode extends Node
 {
-    private $var;
-    private $value;
+    private $assignments;
     private $local;
 
-    public function __construct($var, Node $value, bool $local)
+    public function __construct(array $assignments, bool $local)
     {
-        $this->var = $var;
-        $this->value = $value;
+        $this->assignments = $assignments;
         $this->local = $local;
     }
 
-    public function getVariableName()
+    public function getAssignments(): array
     {
-        return $this->var;
-    }
-
-    public function getValue(): Node
-    {
-        return $this->value;
+        return $this->assignments;
     }
 
     public function isLocal(): bool
