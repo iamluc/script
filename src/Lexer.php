@@ -50,7 +50,10 @@ class Lexer
 
         '(' => Token::T_LEFT_PAREN,
         ')' => Token::T_RIGHT_PAREN,
+        '{' => Token::T_LEFT_BRACE,
+        '}' => Token::T_RIGHT_BRACE,
         ',' => Token::T_COMMA,
+        ';' => Token::T_SEMI_COLON,
         '..' => Token::T_DOUBLE_DOT,
     ];
 
@@ -100,7 +103,7 @@ class Lexer
         }
 
         // No boundary
-        if ($token = $this->match('/(==|~=|<=|<|>=|>|=|\+|-|\*|\/|\(|\)|\.\.|,)/A')) {
+        if ($token = $this->match('/(==|~=|<=|<|>=|>|=|\+|-|\*|\/|\(|\)|\.\.|,|{|}|;)/A')) {
             return new Token(self::$stringToToken[$token['match']], $token['match'], $token['cursor']);
         }
 

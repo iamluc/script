@@ -7,6 +7,7 @@ use Iamluc\Script\Exception\CodeFlowException;
 use Iamluc\Script\Exception\GotoException;
 use Iamluc\Script\Exception\ReturnException;
 use Iamluc\Script\Lib\BasicLib;
+use Iamluc\Script\Node\AssignNode;
 use Iamluc\Script\Node\FunctionDefinition\FunctionDefinitionInterface;
 use Iamluc\Script\Node\LabelNode;
 
@@ -140,6 +141,10 @@ blockstart:
             return $this->evaluateAssignNode($node);
         }
 
+        if ($node instanceof Node\TableNode) {
+            return $this->evaluateTableNode($node);
+        }
+
         if ($node instanceof Node\BinaryNode) {
             return $this->evaluateBinaryNode($node);
         }
@@ -166,6 +171,10 @@ blockstart:
 
         if ($node instanceof Node\CallNode) {
             return $this->evaluateCallNode($node);
+        }
+
+        if ($node instanceof Node\FunctionDefinition\ScriptFunctionNode) {
+            return $node;
         }
 
         if ($node instanceof Node\ReturnNode) {
@@ -319,6 +328,23 @@ blockstart:
         }
 
         return $this->evaluateBlockNode($function->getBlock(), true, new Scope($values));
+    }
+
+    private function evaluateTableNode(Node\TableNode $node)
+    {
+        $index = 0;
+        $res = [];
+        foreach ($node->getFields() as $field) {
+            if ($field instanceof AssignNode) {
+                foreach ($field->getAssignments() as $name => $value) {
+                    $res[$name] = $this->evaluateNode($value);
+                }
+            } else {
+                $res[++$index] = $this->evaluateNode($field);
+            }
+        }
+
+        return $res;
     }
 
     private function evaluateBinaryNode(Node\BinaryNode $node)

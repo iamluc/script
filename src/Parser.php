@@ -128,6 +128,12 @@ class Parser
         $token = $this->stream->peek();
 
         switch ($token->getType()) {
+            case Token::T_FUNCTION:
+                return $this->parseFunction();
+
+            case Token::T_LEFT_BRACE:
+                return $this->parseTable();
+
             case Token::T_LEFT_PAREN:
                 $left = $this->parseExpression();
                 $this->stream->expect((Token::T_RIGHT_PAREN));
@@ -338,10 +344,10 @@ class Parser
 
         $this->stream->expect(Token::T_ASSIGN);
 
-        $values = [$this->readAssignValue()];
+        $values = [$this->parseExpression()];
         while ($this->stream->nextIs(Token::T_COMMA)) {
             $this->stream->expect(Token::T_COMMA);
-            $values[] = $this->readAssignValue();
+            $values[] = $this->parseExpression();
         }
 
         if (\count($values) > \count($vars)) {
@@ -351,17 +357,6 @@ class Parser
         }
 
         return new Node\AssignNode(array_combine($vars, $values), $local);
-    }
-
-    private function readAssignValue()
-    {
-        if ($this->stream->nextIs(Token::T_FUNCTION)) {
-            $this->stream->expect(Token::T_FUNCTION); // Consume function
-
-            return $this->parseFunction();
-        }
-
-        return $this->parseExpression();
     }
 
     private function parseLocal()
@@ -375,6 +370,42 @@ class Parser
         $name = $this->stream->expect(Token::T_NAME);
 
         return new Node\AssignNode([$name->getValue() => $this->parseFunction()], true);
+    }
+
+    /**
+     * @see https://www.lua.org/manual/5.3/manual.html#3.4.9
+     */
+    private function parseTable()
+    {
+        $fields = [];
+        while (!$this->stream->nextIs(Token::T_RIGHT_BRACE)) {
+            $fields[] = $this->parseField();
+
+            if ($this->stream->nextIs([Token::T_COMMA, Token::T_SEMI_COLON])) {
+                $this->stream->expect([Token::T_COMMA, Token::T_SEMI_COLON]);
+            }
+        }
+        $this->stream->expect(Token::T_RIGHT_BRACE);
+
+        return new Node\TableNode($fields);
+    }
+
+    private function parseField()
+    {
+        // FIXME: support []
+
+        $token = $this->stream->peek();
+        if ($token->is(Token::T_NAME) && $this->stream->nextIs(Token::T_ASSIGN)) {
+            $name = $token->getValue();
+            $this->stream->expect(Token::T_ASSIGN);
+            $value = $this->parseExpression();
+
+            return new Node\AssignNode([$name => $value], true);
+        }
+
+        $this->stream->rewind(); // ...
+
+        return $this->parseExpression();
     }
 
     private function convertToNode(Token $token): Node\Node

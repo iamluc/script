@@ -24,6 +24,11 @@ class TokenStream
         return $this->forward(false);
     }
 
+    public function rewind()
+    {
+        --$this->position;
+    }
+
     private function forward($peek): Token
     {
         $nextPos = $this->position + 1;

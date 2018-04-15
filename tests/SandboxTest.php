@@ -62,6 +62,12 @@ class SandboxTest extends TestCase
         yield ['12 .. " = twelve"', '12 = twelve'];
         yield ['(2*4) .." tests OK"', '8 tests OK'];
 
+        yield ['{2+2, "blabla"; toto = 2 > 1}', [
+            1 => 4,
+            2 => 'blabla',
+            'toto' => true
+        ]];
+
         yield [
             <<<EOS
 mult = 10
@@ -457,7 +463,7 @@ EOS
     /**
      * @dataProvider provideFunction
      */
-    public function testFunction($script, $expectedGlobals, $expectedResult = null)
+    public function testFunction($script, $expectedGlobals, $expectedResult = null, $expectedOutput = '')
     {
         $parser = new Parser();
         $sandbox = new Sandbox();
@@ -465,8 +471,9 @@ EOS
         $block = $parser->parse($script);
         $result = $sandbox->eval($block);
 
-        $this->assertEquals($expectedGlobals, $sandbox->getGlobals());
         $this->assertEquals($expectedResult, $result);
+        $this->assertEquals($expectedGlobals, $sandbox->getGlobals());
+        $this->assertEquals($expectedOutput, $sandbox->getOutput());
     }
 
     public function provideFunction()
@@ -591,6 +598,44 @@ EOS
             , [],
             15
         ];
+
+        yield [
+            <<<EOS
+function getFactory()
+    return function() print("Created !") end
+end
+factory = getFactory()
+factory()
+factory()
+EOS
+            , [],
+            null,
+            'Created !
+Created !
+',
+        ];
+
+        // FIXME: support multiple return values
+//        yield [
+//            <<<EOS
+//function getFactory()
+//    return function() print("Created !") end
+//           , function() print("V2 !") end
+//end
+//factory, v2 = getFactory()
+//factory()
+//v2()
+//factory()
+//v2()
+//EOS
+//            , [],
+//            null,
+//            'Created !
+//V2 !
+//Created !
+//V2 !
+//',
+//        ];
     }
 
     public function testVariableScope()
