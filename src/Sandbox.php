@@ -21,8 +21,7 @@ class Sandbox
     {
         $this->output = new Output();
         $this->scopeStack = new ScopeStack([
-            $this->createRootScope(),
-            new Scope(),
+            $this->createLibrariesScope(),
         ]);
 
         try {
@@ -46,7 +45,7 @@ class Sandbox
         return $this->output;
     }
 
-    private function createRootScope(): Scope
+    private function createLibrariesScope(): Scope
     {
         $scope = new Scope();
 

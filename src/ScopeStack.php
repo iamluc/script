@@ -9,15 +9,17 @@ class ScopeStack
      */
     private $stack = [];
     private $index = -1;
-    private $first;
+    private $firstWritable;
 
-    public function __construct(array $scopes = [])
+    public function __construct(array $readOnlyScopes = [], Scope $writableScope = null)
     {
-        foreach ($scopes as $scope) {
+        foreach ($readOnlyScopes as $scope) {
             $this->push($scope);
         }
 
-        $this->first = $this->index;
+        $this->push($writableScope ?: new Scope());
+
+        $this->firstWritable = $this->index;
     }
 
     public function push(Scope $scope = null)
@@ -44,7 +46,7 @@ class ScopeStack
             return $this->current()->setVariable($name, $value);
         }
 
-        for ($i = $this->index; $i >= 0; $i--) {
+        for ($i = $this->index; $i > $this->firstWritable; $i--) {
             $scope = $this->stack[$i];
             if ($scope->hasVariable($name)) {
                 return $scope->setVariable($name, $value);
@@ -84,7 +86,7 @@ class ScopeStack
 
     protected function first(): Scope
     {
-        if (!isset($this->stack[$this->first])) {
+        if (!isset($this->stack[$this->firstWritable])) {
             throw new \LogicException('There is no writable scope in stack.');
         }
 
@@ -93,7 +95,7 @@ class ScopeStack
 
     protected function current(): Scope
     {
-        if ($this->index < 1) {
+        if ($this->index < $this->firstWritable) {
             throw new \LogicException('There is no scope in stack.');
         }
 
