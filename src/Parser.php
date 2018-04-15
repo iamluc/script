@@ -278,7 +278,7 @@ class Parser
         return new Node\CallNode($name->getValue(), $args);
     }
 
-    private function parseFunction(): Node\FunctionNode
+    private function parseFunction(): Node\FunctionDefinition\ScriptFunctionNode
     {
         $this->stream->expect(Token::T_LEFT_PAREN);
         $args = [];
@@ -296,7 +296,7 @@ class Parser
         $block = $this->parseBlock(Token::T_END);
         $this->stream->expect(Token::T_END);
 
-        return new Node\FunctionNode($args, $block);
+        return new Node\FunctionDefinition\ScriptFunctionNode($args, $block);
     }
 
     private function parseNamedFunction(): Node\AssignNode

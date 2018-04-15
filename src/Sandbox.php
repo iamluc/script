@@ -6,16 +6,24 @@ use Iamluc\Script\Exception\BreakException;
 use Iamluc\Script\Exception\CodeFlowException;
 use Iamluc\Script\Exception\GotoException;
 use Iamluc\Script\Exception\ReturnException;
+use Iamluc\Script\Lib\BasicLib;
+use Iamluc\Script\Node\FunctionDefinition\FunctionDefinitionInterface;
 use Iamluc\Script\Node\LabelNode;
 
 class Sandbox
 {
     /** @var ScopeStack */
     private $scopeStack;
+    /** @var Output */
+    private $output;
 
     public function eval(Node\BlockNode $main)
     {
-        $this->scopeStack = new ScopeStack();
+        $this->output = new Output();
+        $this->scopeStack = new ScopeStack([
+            $this->createRootScope(),
+            new Scope(),
+        ]);
 
         try {
             return $this->evaluateBlockNode($main, true);
@@ -31,6 +39,20 @@ class Sandbox
     public function getGlobals(): array
     {
         return $this->scopeStack->getVariables();
+    }
+
+    public function getOutput(): Output
+    {
+        return $this->output;
+    }
+
+    private function createRootScope(): Scope
+    {
+        $scope = new Scope();
+
+        (new BasicLib())->register($scope, $this->output);
+
+        return $scope;
     }
 
     /**
@@ -267,7 +289,7 @@ blockstart:
     {
         $assignments = [];
         foreach ($node->getAssignments() as $name => $value) {
-            if (!$value instanceof Node\FunctionNode) {
+            if (!$value instanceof FunctionDefinitionInterface) {
                 $value = $this->evaluateNode($value);
             }
 
@@ -291,6 +313,10 @@ blockstart:
             } else {
                 $values[$name] = null;
             }
+        }
+
+        if ($function instanceof Node\FunctionDefinition\PhpFunctionNode) {
+            return call_user_func($function->getCallable(), ...array_values($values));
         }
 
         return $this->evaluateBlockNode($function->getBlock(), true, new Scope($values));

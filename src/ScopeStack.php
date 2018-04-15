@@ -9,10 +9,15 @@ class ScopeStack
      */
     private $stack = [];
     private $index = -1;
+    private $first;
 
-    public function __construct()
+    public function __construct(array $scopes = [])
     {
-        $this->push();
+        foreach ($scopes as $scope) {
+            $this->push($scope);
+        }
+
+        $this->first = $this->index;
     }
 
     public function push(Scope $scope = null)
@@ -30,29 +35,7 @@ class ScopeStack
             throw new \LogicException('There is no scope to pop in stack.');
         }
 
-        if (0 === $this->index) {
-            throw new \LogicException('You cannot pop the root scope.');
-        }
-
         unset($this->stack[$this->index--]);
-    }
-
-    public function root(): Scope
-    {
-        if ($this->index < 0) {
-            throw new \LogicException('There is no scope in stack.');
-        }
-
-        return $this->stack[0];
-    }
-
-    public function current(): Scope
-    {
-        if ($this->index < 0) {
-            throw new \LogicException('There is no scope in stack.');
-        }
-
-        return $this->stack[$this->index];
     }
 
     public function setVariable($name, $value, $local = false)
@@ -68,7 +51,7 @@ class ScopeStack
             }
         }
 
-        return $this->root()->setVariable($name, $value);
+        return $this->first()->setVariable($name, $value);
     }
 
     public function getVariable($name)
@@ -83,26 +66,37 @@ class ScopeStack
         return null;
     }
 
-    public function getVariables($noFunctions = true): array
+    public function getVariables($withFunctions = false)
     {
-        $variables = $this->current()->getVariables();
-        if (false === $noFunctions) {
-            return $variables;
-        }
-
-        return array_filter($variables, function ($val) {
-            return !$val instanceof Node\FunctionNode;
-        });
+        return $this->current()->getVariables($withFunctions);
     }
 
-    public function getFunction($name): Node\FunctionNode
+    public function getFunction($name): Node\FunctionDefinition\FunctionDefinitionInterface
     {
         $func = $this->getVariable($name);
 
-        if (!$func instanceof Node\FunctionNode) {
+        if (!$func instanceof Node\FunctionDefinition\FunctionDefinitionInterface) {
             throw new \LogicException(sprintf('Function "%s" is not defined.', $name));
         }
 
         return $func;
+    }
+
+    protected function first(): Scope
+    {
+        if (!isset($this->stack[$this->first])) {
+            throw new \LogicException('There is no writable scope in stack.');
+        }
+
+        return $this->stack[1];
+    }
+
+    protected function current(): Scope
+    {
+        if ($this->index < 1) {
+            throw new \LogicException('There is no scope in stack.');
+        }
+
+        return $this->stack[$this->index];
     }
 }

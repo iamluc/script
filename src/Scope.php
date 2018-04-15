@@ -21,13 +21,24 @@ class Scope
         $this->variables[$name] = $value;
     }
 
+    public function setVariables(array $variables): void
+    {
+        $this->variables = $variables + $this->variables;
+    }
+
     public function getVariable($name)
     {
         return $this->variables[$name] ?? null;
     }
 
-    public function getVariables(): array
+    public function getVariables($withFunctions = false): array
     {
-        return $this->variables;
+        if ($withFunctions) {
+            return $this->variables;
+        }
+
+        return array_filter($this->variables, function ($val) {
+            return !$val instanceof Node\FunctionDefinition\FunctionDefinitionInterface;
+        });
     }
 }

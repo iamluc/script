@@ -2,12 +2,9 @@
 
 namespace Test\Iamluc\Script;
 
-use Iamluc\Script\Lexer;
 use Iamluc\Script\Parser;
 use Iamluc\Script\Sandbox;
-use Iamluc\Script\Token;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\VarDumper\Test\VarDumperTestTrait;
 
 class SandboxTest extends TestCase
 {
@@ -133,7 +130,7 @@ local hello, world = "Salut", "le monde !"
 
 return hello.." (wait for it) "..world
 EOS
-            , [],
+            , [], // to be or not to be ?
             'Salut (wait for it) le monde !'
         ];
 
@@ -600,27 +597,20 @@ EOS
         $parser = new Parser();
         $sandbox = new Sandbox();
 
-        # Adapted From Lua manual
+        # From https://www.lua.org/manual/5.1/manual.html#2.6
         $script = <<<EOS
-function print(val) end  -- fake function
-        
-x = 10                  -- global variable
-do                      -- new block
-    local x = x         -- new `x', with value 10
-    print(x)            --> 10
-    b = x
-    x = x+1
-    do                  -- another block
-        local x = x+1   -- another `x'
-        print(x)        --> 12
-        c = x
-    end
-    print(x)            --> 11
-    d = x
+x = 10                -- global variable
+do                    -- new block
+  local x = x         -- new 'x', with value 10
+  print(x)            --> 10
+  x = x+1
+  do                  -- another block
+    local x = x+1     -- another 'x'
+    print(x)          --> 12
+  end
+  print(x)            --> 11
 end
-print(x)                --> 10  (the global one)
-
-return x
+print(x)              --> 10  (the global one)
 EOS;
 
         $block = $parser->parse($script);
@@ -628,11 +618,15 @@ EOS;
 
         $this->assertEquals([
             'x' => 10,
-            'b' => 10,
-            'c' => 12,
-            'd' => 11,
         ], $sandbox->getGlobals());
-        $this->assertEquals(10, $result);
+        $this->assertEquals(null, $result);
+        $this->assertEquals('10
+12
+11
+10
+'
+            , $sandbox->getOutput()
+        );
     }
 
     public function testFunctionScope()

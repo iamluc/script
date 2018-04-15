@@ -1,8 +1,10 @@
 <?php
 
-namespace Iamluc\Script\Node;
+namespace Iamluc\Script\Node\FunctionDefinition;
 
-class FunctionNode extends Node
+use Iamluc\Script\Node\Node;
+
+class ScriptFunctionNode extends Node implements FunctionDefinitionInterface
 {
     private $arguments;
     private $block;

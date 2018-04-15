@@ -2,9 +2,7 @@
 
 namespace Test\Iamluc\Script;
 
-use Iamluc\Script\Lexer;
 use Iamluc\Script\Parser;
-use Iamluc\Script\Token;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\VarDumper\Test\VarDumperTestTrait;
 
