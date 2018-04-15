@@ -26,7 +26,13 @@ class Sandbox
         ]);
 
         try {
-            return $this->evaluateBlockNode($main, true);
+            $gen = $this->evaluateBlockNodeGenerator($main, true);
+            foreach ($gen as $xx) {
+                dump("coucou");
+                if (is_array($xx)) {
+                    return current($xx);
+                }
+            }
         } catch (BreakException $e) {
             throw new \LogicException('"break" not catched. Sandbox has a bug!');
         } catch (ReturnException $e) {
@@ -62,6 +68,16 @@ class Sandbox
      */
     private function evaluateBlockNode(Node\BlockNode $block, $catchReturn = false, $scope = true)
     {
+        $gen = $this->evaluateBlockNodeGenerator($block, $catchReturn, $scope);
+        foreach ($gen as $xx) {
+            if (is_array($xx)) {
+                return current($xx);
+            }
+        }
+    }
+
+    private function evaluateBlockNodeGenerator(Node\BlockNode $block, $catchReturn = false, $scope = true)
+    {
         if (true === $scope) {
             $scope = new Scope();
         }
@@ -82,11 +98,12 @@ blockstart:
 
             try {
                 $this->evaluateNode($node);
+                yield;
             } catch (ReturnException $return) {
                 $scope and $this->scopeStack->pop();
 
                 if ($catchReturn) {
-                    return $return->getValue();
+                    yield array($return->getValue());
                 }
 
                 throw $return;
