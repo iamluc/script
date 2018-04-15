@@ -283,7 +283,17 @@ blockstart:
     {
         $function = $this->scopeStack->getFunction($node->getFunctionName());
 
-        return $this->evaluateBlockNode($function->getBlock(), true);
+        $args = $node->getArguments();
+        $values = [];
+        foreach ($function->getArguments() as $i => $name) {
+            if (isset($args[$i])) {
+                $values[$name] = $this->evaluateNode($args[$i]);
+            } else {
+                $values[$name] = null;
+            }
+        }
+
+        return $this->evaluateBlockNode($function->getBlock(), true, new Scope($values));
     }
 
     private function evaluateBinaryNode(Node\BinaryNode $node)

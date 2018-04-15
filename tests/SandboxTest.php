@@ -583,6 +583,16 @@ EOS
             ],
             18
         ];
+
+        yield [
+            <<<EOS
+divi = function (z) return z / 2 end
+multi = function(a, b) return a * divi(b) end
+return multi(3, 10)
+EOS
+            , [],
+            15
+        ];
     }
 
     public function testVariableScope()

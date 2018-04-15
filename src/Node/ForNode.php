@@ -10,7 +10,7 @@ class ForNode extends Node
     private $step;
     private $block;
 
-    public function __construct(string $variable, BlockNode $block, Node $initial, Node $limit, Node $step = null)
+    public function __construct(string $variable, BlockNode $block, Node $initial, Node $limit, Node $step)
     {
         $this->variable = $variable;
         $this->block = $block;
@@ -39,10 +39,7 @@ class ForNode extends Node
         return $this->limit;
     }
 
-    /**
-     * @return Node|null
-     */
-    public function getStep()
+    public function getStep(): Node
     {
         return $this->step;
     }

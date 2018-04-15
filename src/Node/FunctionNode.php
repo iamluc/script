@@ -4,18 +4,18 @@ namespace Iamluc\Script\Node;
 
 class FunctionNode extends Node
 {
-    private $args;
+    private $arguments;
     private $block;
 
-    public function __construct(Node $args = null, Node $block) // FIXME: arguments
+    public function __construct(array $arguments, Node $block)
     {
-        $this->args = $args;
+        $this->arguments = $arguments;
         $this->block = $block;
     }
 
-    public function getArgs(): Node
+    public function getArguments(): array
     {
-        return $this->args;
+        return $this->arguments;
     }
 
     public function getBlock(): Node

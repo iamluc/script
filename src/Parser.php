@@ -262,27 +262,41 @@ class Parser
 
     private function parseCall(Token $name): Node\CallNode
     {
-        $this->stream->expect(Token::T_LEFT_PAREN); // FIXME: handle arguments
+        $this->stream->expect(Token::T_LEFT_PAREN);
+        $args = [];
         while (!$this->stream->nextIs(Token::T_RIGHT_PAREN)) {
-            $this->stream->peek();
+            $args[] = $this->parseExpression();
+
+            $next = $this->stream->next();
+            if ($next->is(Token::T_RIGHT_PAREN)) {
+                break;
+            }
+            $this->stream->expect(Token::T_COMMA);
         }
         $this->stream->expect(Token::T_RIGHT_PAREN);
 
-        return new Node\CallNode($name->getValue());
+        return new Node\CallNode($name->getValue(), $args);
     }
 
     private function parseFunction(): Node\FunctionNode
     {
-        $this->stream->expect(Token::T_LEFT_PAREN); // FIXME: handle arguments
+        $this->stream->expect(Token::T_LEFT_PAREN);
+        $args = [];
         while (!$this->stream->nextIs(Token::T_RIGHT_PAREN)) {
-            $this->stream->peek();
+            $args[] = $this->stream->expect(Token::T_NAME)->getValue();
+
+            $next = $this->stream->next();
+            if ($next->is(Token::T_RIGHT_PAREN)) {
+                break;
+            }
+            $this->stream->expect(Token::T_COMMA);
         }
         $this->stream->expect(Token::T_RIGHT_PAREN);
 
         $block = $this->parseBlock(Token::T_END);
         $this->stream->expect(Token::T_END);
 
-        return new Node\FunctionNode(null, $block);
+        return new Node\FunctionNode($args, $block);
     }
 
     private function parseNamedFunction(): Node\AssignNode
