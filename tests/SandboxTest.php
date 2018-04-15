@@ -136,6 +136,40 @@ EOS
             , [],
             'Salut (wait for it) le monde !'
         ];
+
+        yield [
+            <<<EOS
+x,y,z="x","y","z"
+
+x, y, z = y, z, x
+EOS
+            , [
+                'x' => 'y',
+                'y' => 'z',
+                'z' => 'x',
+            ]
+        ];
+
+        yield [
+            <<<EOS
+x, y, missing = "x", "y"
+EOS
+            , [
+                'x' => 'x',
+                'y' => 'y',
+                'missing' => null,
+            ]
+        ];
+
+        yield [
+            <<<EOS
+x, y = "x", "y", "too", "much"
+EOS
+            , [
+                'x' => 'x',
+                'y' => 'y',
+            ]
+        ];
     }
 
     /**
@@ -789,5 +823,21 @@ EOS
                 'res' => 8,
             ],
         ];
+
+//        yield [
+//            <<<EOS
+//function it()
+//    return 12
+//end
+//
+//res = 0
+//for v in it() do
+//    res = res + v
+//end
+//EOS
+//            , [
+//                'res' => 8,
+//            ],
+//        ];
     }
 }

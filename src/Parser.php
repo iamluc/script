@@ -4,6 +4,7 @@ namespace Iamluc\Script;
 
 use Iamluc\Script\Node\BlockNode;
 use Iamluc\Script\Node\NoOperationNode;
+use Iamluc\Script\Node\ScalarNode;
 
 class Parser
 {
@@ -190,16 +191,22 @@ class Parser
     private function parseFor()
     {
         $var = $this->stream->expect(Token::T_NAME);
-        $type = $this->stream->expect([Token::T_ASSIGN, Token::T_IN]);
+        $type = $this->stream->expect([Token::T_ASSIGN, Token::T_IN, Token::T_COMMA]);
 
-        $expr = [$this->parseExpression()];
-        while ($this->stream->nextIs(Token::T_COMMA)) {
+        if ($type->is(Token::T_ASSIGN)) {
+            $intial = $this->parseExpression();
             $this->stream->expect(Token::T_COMMA);
-            $expr[] = $this->parseExpression();
-        }
+            $limit = $this->parseExpression();
 
-        if ($type->is(Token::T_ASSIGN) && (count($expr) < 2 || count($expr) > 3)) {
-            throw new \LogicException('Numerical "for" loop expects 2 or 3 expressions.');
+            $step = null;
+            if ($this->stream->nextIs(Token::T_COMMA)) {
+                $this->stream->expect(Token::T_COMMA);
+                $step = $this->parseExpression();
+            }
+        } else {
+            // FIXME: support "key, value" format
+
+            $expr = $this->parseExpression();
         }
 
         $this->stream->expect(Token::T_DO);
@@ -208,10 +215,10 @@ class Parser
         $this->stream->expect(Token::T_END);
 
         if ($type->is(Token::T_ASSIGN)) {
-            return new Node\ForNode($var->getValue(), $body, $expr[0], $expr[1], $expr[2] ?? new Node\ScalarNode(1));
+            return new Node\ForNode($var->getValue(), $body, $intial, $limit, $step ?: new Node\ScalarNode(1));
         }
 
-        throw new \LogicException('"for in" not implemented yet!');
+        return new Node\ForeachNode($var->getValue(), $expr);
     }
 
     private function parseDo()
@@ -323,9 +330,10 @@ class Parser
             $values[] = $this->readAssignValue();
         }
 
-        // FIXME: https://www.lua.org/manual/5.3/manual.html#3.3.3
-        if (\count($vars) !== \count($values)) {
-            throw new \LogicException(sprintf('Invalid assignment. Got "%d" value(s) for "%d" name(s) ("%s").', \count($values), \count($vars), implode('", "', $vars)));
+        if (\count($values) > \count($vars)) {
+            $values = \array_slice($values, 0, \count($vars));
+        } elseif (\count($values) < \count($vars)) {
+            $values = array_pad($values, \count($vars), new ScalarNode(null));
         }
 
         return new Node\AssignNode(array_combine($vars, $values), $local);

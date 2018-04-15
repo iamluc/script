@@ -139,6 +139,10 @@ blockstart:
             return $this->evaluateForNode($node);
         }
 
+        if ($node instanceof Node\ForeachNode) {
+            return $this->evaluateForeachNode($node);
+        }
+
         if ($node instanceof Node\CallNode) {
             return $this->evaluateCallNode($node);
         }
@@ -238,17 +242,39 @@ blockstart:
         }
     }
 
+    // FIXME: not tested
+    private function evaluateForeachNode(Node\ForeachNode $node)
+    {
+        $iterator = $this->evaluateNode($node->getExpression());
+        if (!is_iterable($iterator)) {
+            throw new \LogicException('Result of expression in "for in" is not iterable.');
+        }
+
+        $values = is_array($iterator) ? $iterator : iterator_to_array($iterator);
+        foreach ($values as $value) {
+            try {
+                $this->evaluateBlockNode($node->getBlock(), false, new Scope([$node->getVariable() => $value]));
+            } catch (BreakException $break) {
+                return;
+            }
+        }
+    }
+
     /**
      * @see https://www.lua.org/manual/5.3/manual.html#3.3.3
      */
     private function evaluateAssignNode(Node\AssignNode $node)
     {
-        // FIXME: value evaluation order
+        $assignments = [];
         foreach ($node->getAssignments() as $name => $value) {
             if (!$value instanceof Node\FunctionNode) {
                 $value = $this->evaluateNode($value);
             }
 
+            $assignments[$name] = $value;
+        }
+
+        foreach ($assignments as $name => $value) {
             $this->scopeStack->setVariable($name, $value, $node->isLocal());
         }
     }
