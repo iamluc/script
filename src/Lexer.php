@@ -111,12 +111,12 @@ class Lexer
         }
 
         // Numbers
-        if ($token = $this->match('/([0-9]+)\b/A')) {
+        if ($token = $this->match('/([0-9]+(?:\.[0-9]+)?)/A')) {
             return new Token(Token::T_NUMBER, $token['match'], $token['cursor']);
         }
 
         // Variables
-        if ($token = $this->match('/([\w-_]+)\b/A')) {
+        if ($token = $this->match('/([\w-_]+)/A')) {
             return new Token(Token::T_NAME, $token['match'], $token['cursor']);
         }
 

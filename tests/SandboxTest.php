@@ -35,6 +35,7 @@ class SandboxTest extends TestCase
         yield ['10* ((10*5) - 1)', 490];
         yield ['5 / (4+1) * 6 + 3 * 2 * 2', 18];
         yield ['-5 - (-3-1)', -1];
+        yield ['4.38+0.12', 4.5];
 
         yield ['4*3 == 4+8', true];
         yield ['4*3 ~= 4+8', false];
@@ -826,6 +827,18 @@ EOS
             , [
                 'res' => 8,
             ],
+        ];
+
+        yield [
+            'for i=1,0,-0.25 do print(i) end',
+            [],
+            null,
+            '1.0
+0.75
+0.5
+0.25
+0.0
+',
         ];
 
 //        yield [
