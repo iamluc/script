@@ -174,6 +174,42 @@ EOS
                 'y' => 'y',
             ]
         ];
+
+        yield [
+            <<<EOS
+function twice() return "first", "second" end
+x, y, z = "x", "y", twice()
+EOS
+            , [
+                'x' => 'x',
+                'y' => 'y',
+                'z' => 'first',
+            ]
+        ];
+
+        yield [
+            <<<EOS
+function twice() return "first", "second" end
+x, y, z = "x", twice()
+EOS
+            , [
+                'x' => 'x',
+                'y' => 'first',
+                'z' => 'second',
+            ]
+        ];
+
+        yield [
+            <<<EOS
+function twice() return "first", "second" end
+x, y, z = "x", twice(), "z"
+EOS
+            , [
+                'x' => 'x',
+                'y' => 'first',
+                'z' => 'z',
+            ]
+        ];
     }
 
     /**
@@ -615,27 +651,26 @@ Created !
 ',
         ];
 
-        // FIXME: support multiple return values
-//        yield [
-//            <<<EOS
-//function getFactory()
-//    return function() print("Created !") end
-//           , function() print("V2 !") end
-//end
-//factory, v2 = getFactory()
-//factory()
-//v2()
-//factory()
-//v2()
-//EOS
-//            , [],
-//            null,
-//            'Created !
-//V2 !
-//Created !
-//V2 !
-//',
-//        ];
+        yield [
+            <<<EOS
+function getFactory()
+    return function() print("Created !") end
+           , function() print("V2 !") end
+end
+factory, v2 = getFactory()
+factory()
+v2()
+factory()
+v2()
+EOS
+            , [],
+            null,
+            'Created !
+V2 !
+Created !
+V2 !
+',
+        ];
     }
 
     public function testVariableScope()

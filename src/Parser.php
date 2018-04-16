@@ -173,6 +173,17 @@ class Parser
         return $left;
     }
 
+    private function parseExpressionList()
+    {
+        $values = [$this->parseExpression()];
+        while ($this->stream->nextIs(Token::T_COMMA)) {
+            $this->stream->expect(Token::T_COMMA);
+            $values[] = $this->parseExpression();
+        }
+
+        return $values;
+    }
+
     private function parseWhile()
     {
         $condition = $this->parseExpression();
@@ -200,14 +211,9 @@ class Parser
         $type = $this->stream->expect([Token::T_ASSIGN, Token::T_IN, Token::T_COMMA]);
 
         if ($type->is(Token::T_ASSIGN)) {
-            $intial = $this->parseExpression();
-            $this->stream->expect(Token::T_COMMA);
-            $limit = $this->parseExpression();
-
-            $step = null;
-            if ($this->stream->nextIs(Token::T_COMMA)) {
-                $this->stream->expect(Token::T_COMMA);
-                $step = $this->parseExpression();
+            $numArgs = $this->parseExpressionList();
+            if (\count($numArgs) < 2 || \count($numArgs) > 3) {
+                throw new \LogicException(sprintf('Numeric "for" requires 2 or 3 arguments. Got %d.', \count($numArgs)));
             }
         } else {
             // FIXME: support "key, value" format
@@ -221,7 +227,7 @@ class Parser
         $this->stream->expect(Token::T_END);
 
         if ($type->is(Token::T_ASSIGN)) {
-            return new Node\ForNode($var->getValue(), $body, $intial, $limit, $step ?: new Node\ScalarNode(1));
+            return new Node\ForNode($var->getValue(), $body, $numArgs[0], $numArgs[1], $numArgs[2] ?? new Node\ScalarNode(1));
         }
 
         return new Node\ForeachNode($var->getValue(), $expr);
@@ -232,7 +238,7 @@ class Parser
         $body = $this->parseBlock(Token::T_END);
         $this->stream->expect(Token::T_END);
 
-        return $body;
+        return new Node\DoNode($body);
     }
 
     private function parseIf($end = true)
@@ -314,7 +320,7 @@ class Parser
 
     private function parseReturn(): Node\ReturnNode
     {
-        return new Node\ReturnNode($this->parseExpression());
+        return new Node\ReturnNode($this->parseExpressionList());
     }
 
     private function parseBreak(): Node\BreakNode
@@ -344,16 +350,11 @@ class Parser
 
         $this->stream->expect(Token::T_ASSIGN);
 
-        $values = [$this->parseExpression()];
-        while ($this->stream->nextIs(Token::T_COMMA)) {
-            $this->stream->expect(Token::T_COMMA);
-            $values[] = $this->parseExpression();
-        }
-
+        $values = $this->parseExpressionList();
         if (\count($values) > \count($vars)) {
             $values = \array_slice($values, 0, \count($vars));
         } elseif (\count($values) < \count($vars)) {
-            $values = array_pad($values, \count($vars), new ScalarNode(null));
+            $values = array_pad($values, \count($vars), null);
         }
 
         return new Node\AssignNode(array_combine($vars, $values), $local);

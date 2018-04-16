@@ -26,7 +26,7 @@ class Sandbox
         ]);
 
         try {
-            return $this->evaluateBlockNode($main, true);
+            $returnSet = $this->evaluateBlockNode($main, true);
         } catch (BreakException $e) {
             throw new \LogicException('"break" not catched. Sandbox has a bug!');
         } catch (ReturnException $e) {
@@ -34,6 +34,8 @@ class Sandbox
         } catch (GotoException $e) {
             throw new \LogicException('"goto" not catched. Sandbox has a bug!');
         }
+
+        return $returnSet->first(); // FIXME: return an ExecutionResult with all results, output, script scope ?
     }
 
     public function getGlobals(): array
@@ -86,7 +88,7 @@ blockstart:
                 $scope and $this->scopeStack->pop();
 
                 if ($catchReturn) {
-                    return $return->getValue();
+                    return $return->getReturnSet();
                 }
 
                 throw $return;
@@ -112,6 +114,8 @@ blockstart:
         }
 
         $scope and $this->scopeStack->pop();
+
+        return new ReturnSet();
     }
 
     /**
@@ -129,8 +133,8 @@ blockstart:
             return $this->scopeStack->getVariable($node->getVariable());
         }
 
-        if ($node instanceof Node\BlockNode) {
-            return $this->evaluateBlockNode($node);
+        if ($node instanceof Node\DoNode) {
+            return $this->evaluateDoNode($node);
         }
 
         if ($node instanceof Node\UnaryNode) {
@@ -178,7 +182,7 @@ blockstart:
         }
 
         if ($node instanceof Node\ReturnNode) {
-            throw new ReturnException($this->evaluateNode($node->getValue()));
+            $this->evaluateReturnNode($node);
         }
 
         if ($node instanceof Node\BreakNode) {
@@ -196,12 +200,28 @@ blockstart:
         throw new \LogicException(sprintf('Unable to evaluateNode node of type %s', get_class($node)));
     }
 
+    private function evaluateReturnNode(Node\ReturnNode $node)
+    {
+        $values = [];
+        foreach ($node->getValues() as $value) {
+            $values[] = $this->evaluateNode($value);
+        }
+
+        throw new ReturnException(new ReturnSet($values));
+    }
+
     private function evaluateConditionalNode(Node\ConditionalNode $node)
     {
         $value = $this->evaluateNode($node->getCondition());
         $toProcess = $value ? $node->getIf() : $node->getElse();
 
-        return $this->evaluateNode($toProcess);
+        if ($toProcess instanceof Node\BlockNode) {
+            $this->evaluateBlockNode($toProcess);
+
+            return;
+        }
+
+        $this->evaluateNode($toProcess);
     }
 
     private function evaluateWhileNode(Node\WhileNode $node)
@@ -296,12 +316,32 @@ blockstart:
     private function evaluateAssignNode(Node\AssignNode $node)
     {
         $assignments = [];
+        $notDefined = [];
+        $lastCall = null;
         foreach ($node->getAssignments() as $name => $value) {
-            if (!$value instanceof FunctionDefinitionInterface) {
+            if (null === $value) { // less values than variables
+                $notDefined[] = $name;
+                continue;
+            }
+
+            $lastCall = null;
+            if ($value instanceof Node\CallNode) { // We must keep all results of the call
+                $lastCall = $this->evaluateCallNode($value, false);
+                $value = $lastCall->first();
+            } elseif (!$value instanceof FunctionDefinitionInterface) {
                 $value = $this->evaluateNode($value);
             }
 
             $assignments[$name] = $value;
+        }
+
+        if ($notDefined) {
+            $extra = $lastCall instanceof ReturnSet ? $lastCall->extra() : [];
+            $extra = array_pad($extra, count($notDefined), null);
+
+            foreach ($notDefined as $name) {
+                $assignments[$name] = array_shift($extra);
+            }
         }
 
         foreach ($assignments as $name => $value) {
@@ -309,7 +349,7 @@ blockstart:
         }
     }
 
-    private function evaluateCallNode(Node\CallNode $node)
+    private function evaluateCallNode(Node\CallNode $node, $firstOnly = true)
     {
         $function = $this->scopeStack->getFunction($node->getFunctionName());
 
@@ -327,7 +367,12 @@ blockstart:
             return call_user_func($function->getCallable(), ...array_values($values));
         }
 
-        return $this->evaluateBlockNode($function->getBlock(), true, new Scope($values));
+        $set = $this->evaluateBlockNode($function->getBlock(), true, new Scope($values));
+        if ($firstOnly) {
+            return $set->first();
+        }
+
+        return $set;
     }
 
     private function evaluateTableNode(Node\TableNode $node)
@@ -401,5 +446,10 @@ blockstart:
         }
 
         throw new \LogicException(sprintf('Cannot evaluate unary node with operator "%s"', $node->getOperator()));
+    }
+
+    private function evaluateDoNode(Node\DoNode $node)
+    {
+        $this->evaluateBlockNode($node->getBlock());
     }
 }

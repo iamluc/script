@@ -4,15 +4,18 @@ namespace Iamluc\Script\Node;
 
 class ReturnNode extends Node
 {
-    private $value;
+    private $values;
 
-    public function __construct(Node $value)
+    /**
+     * @param Node[] $values
+     */
+    public function __construct(array $values)
     {
-        $this->value = $value;
+        $this->values = $values;
     }
 
-    public function getValue(): Node
+    public function getValues(): array
     {
-        return $this->value;
+        return $this->values;
     }
 }

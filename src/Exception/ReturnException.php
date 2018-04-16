@@ -2,17 +2,19 @@
 
 namespace Iamluc\Script\Exception;
 
+use Iamluc\Script\ReturnSet;
+
 class ReturnException extends CodeFlowException
 {
-    private $value;
+    private $returnSet;
 
-    public function __construct($value)
+    public function __construct(ReturnSet $returnSet)
     {
-        $this->value = $value;
+        $this->returnSet = $returnSet;
     }
 
-    public function getValue()
+    public function getReturnSet()
     {
-        return $this->value;
+        return $this->returnSet;
     }
 }
