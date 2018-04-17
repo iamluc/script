@@ -5,7 +5,9 @@ namespace Iamluc\Script;
 class Lexer
 {
     private $stream;
-    private $cursor;
+    private $cursor = 0;
+    private $column = 1;
+    private $line = 1;
 
     private static $stringToToken = [
         'function' => Token::T_FUNCTION,
@@ -60,7 +62,6 @@ class Lexer
     public function __construct(string $stream)
     {
         $this->stream = $stream;
-        $this->cursor = 0;
     }
 
     public function all()
@@ -79,7 +80,7 @@ class Lexer
     public function next()
     {
         if ($this->cursor >= strlen($this->stream)) {
-            return new Token(Token::T_EOF);
+            return new Token(Token::T_EOF, null, $this->line, $this->column);
         }
 
         // Ignore spaces
@@ -96,48 +97,57 @@ class Lexer
 
         // Keywords
         if ($token = $this->match('/(true|false|nil|and|or|not|if|then|elseif|else|end|while|do|repeat|until|for|in|function|local|return|break|goto)\b/A')) {
-            return new Token(self::$stringToToken[$token['match']], $token['match'], $token['cursor']);
+            return new Token(self::$stringToToken[$token['match']], $token['match'], $token['line'], $token['column']);
         }
 
         // Labels
         if ($token = $this->match('/::([\w-_]+)::/A')) {
-            return new Token(Token::T_LABEL, $token['match'], $token['cursor']);
+            return new Token(Token::T_LABEL, $token['match'], $token['line'], $token['column']);
         }
 
         // Operators and punctuations
         if ($token = $this->match('/(==|~=|<=|<|>=|>|=|\+|-|\*|\/|\(|\)|\.\.|,|{|}|;)/A')) {
-            return new Token(self::$stringToToken[$token['match']], $token['match'], $token['cursor']);
+            return new Token(self::$stringToToken[$token['match']], $token['match'], $token['line'], $token['column']);
         }
 
         // Numbers
         if ($token = $this->match('/([0-9]+(?:\.[0-9]+)?)/A')) {
-            return new Token(Token::T_NUMBER, $token['match'], $token['cursor']);
+            return new Token(Token::T_NUMBER, $token['match'], $token['line'], $token['column']);
         }
 
         // Variables
         if ($token = $this->match('/([\w-_]+)/A')) {
-            return new Token(Token::T_NAME, $token['match'], $token['cursor']);
+            return new Token(Token::T_NAME, $token['match'], $token['line'], $token['column']);
         }
 
         // Strings
-        if ($token = $this->match('/"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)"|\'([^\'\\\\]*(?:\\\\.[^\'\\\\]*)*)\'/As')) {
-            return new Token(Token::T_STRING, stripcslashes($token['match']), $token['cursor']);
+        if ($token = $this->match('/("([^"\\\\]*(?:\\\\.[^"\\\\]*)*)"|\'([^\'\\\\]*(?:\\\\.[^\'\\\\]*)*)\')/As')) {
+            return new Token(Token::T_STRING, stripcslashes(substr($token['match'], 1, -1)), $token['line'], $token['column']);
         }
 
-        throw new \LogicException("Unable to tokenize the stream.");
+        throw new \LogicException(sprintf('Unable to tokenize the stream near "%s ..." (line %d, column %d).', substr($this->stream, $this->cursor, 20), $this->line, $this->column));
     }
 
     private function match($regex)
     {
         if (1 === preg_match($regex, $this->stream, $matches, 0, $this->cursor)) {
             $token = [
-                'size' => strlen($matches[0]),
-                'full_match' => $matches[0],
-                'match' => $matches[2] ?? $matches[1],
+                'match' => $matches[1],
                 'cursor' => $this->cursor,
+                'line' => $this->line,
+                'column' => $this->column,
             ];
 
-            $this->cursor += $token['size'];
+            $this->cursor += strlen($matches[0]);
+
+            $newLines = substr_count($matches[0], "\n");
+            $this->line += $newLines;
+
+            if ($newLines) {
+                $this->column = strlen($matches[0]) - strrpos($matches[0], "\n");
+            } else {
+                $this->column += strlen($matches[0]);
+            }
 
             return $token;
         }

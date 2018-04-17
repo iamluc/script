@@ -4,7 +4,6 @@ namespace Iamluc\Script;
 
 use Iamluc\Script\Node\BlockNode;
 use Iamluc\Script\Node\NoOperationNode;
-use Iamluc\Script\Node\ScalarNode;
 
 class Parser
 {
@@ -120,7 +119,7 @@ class Parser
             return $this->parseAssign($token);
         }
 
-        throw new \LogicException(sprintf('Invalid statement stating with "%s"', $token->getType()));
+        throw new \LogicException(sprintf('Invalid token in statement: %s', $token));
     }
 
     private function parseExpression($precedence = 0)
@@ -149,7 +148,7 @@ class Parser
 
             default:
                 if (!$token->isScalar() && !$token->isVariable()) {
-                    throw new \LogicException(sprintf('Expected a scalar, a variable or a function call as start of the expression. Got "%s"', $token->getType()));
+                    throw new \LogicException(sprintf('Expected a scalar, a variable or a function call as start of the expression. Got %s', $token));
                 }
 
                 // Function call
@@ -419,6 +418,6 @@ class Parser
             return new Node\VariableNode($token->getValue());
         }
 
-        throw new \LogicException(sprintf('Cannot convert token of type "%s" to node.', $token->getType()));
+        throw new \LogicException(sprintf('Cannot convert token %s to node.', $token));
     }
 }

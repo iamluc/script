@@ -14,7 +14,7 @@ class LexerTest extends TestCase
     /**
      * @dataProvider provideLexerTypes
      */
-    public function testLexerTypes($stream, $type, $value, $position)
+    public function testLexerTypes($stream, $type, $value, $line, $column)
     {
         $lexer = new Lexer($stream);
         $token = $lexer->next();
@@ -22,19 +22,20 @@ class LexerTest extends TestCase
         $this->assertInstanceOf(Token::class, $token);
         $this->assertEquals($type, $token->getType());
         $this->assertEquals($value, $token->getValue());
-        $this->assertEquals($position, $token->getPosition());
+        $this->assertEquals($line, $token->getLine());
+        $this->assertEquals($column, $token->getColumn());
     }
 
     public function provideLexerTypes()
     {
-        yield ['my_var', Token::T_NAME, 'my_var', 0];
-        yield ['"my simple string"', Token::T_STRING, 'my simple string', 0];
-        yield ['  =  ', Token::T_ASSIGN, '=', 2];
-        yield [' if ', Token::T_IF, 'if', 1];
-        yield ['then', Token::T_THEN, 'then', 0];
-        yield ['else ', Token::T_ELSE, 'else', 0];
-        yield ['end ', Token::T_END, 'end', 0];
-        yield ['', Token::T_EOF, null, null];
+        yield ['my_var', Token::T_NAME, 'my_var', 1, 1];
+        yield ['"my simple string"', Token::T_STRING, 'my simple string', 1, 1];
+        yield ['  =  ', Token::T_ASSIGN, '=', 1, 3];
+        yield [' if ', Token::T_IF, 'if', 1, 2];
+        yield ['then', Token::T_THEN, 'then', 1, 1];
+        yield ['else ', Token::T_ELSE, 'else', 1, 1];
+        yield ['end ', Token::T_END, 'end', 1, 1];
+        yield ['', Token::T_EOF, null, 1, 1];
     }
 
     public function testLexerMultiLines()
@@ -50,37 +51,44 @@ array:7 [
   0 => Iamluc\Script\Token {
     -type: "name"
     -value: "hello"
-    -position: 0
+    -line: 1
+    -column: 1
   }
   1 => Iamluc\Script\Token {
     -type: "assign"
     -value: "="
-    -position: 6
+    -line: 1
+    -column: 7
   }
   2 => Iamluc\Script\Token {
     -type: "string"
     -value: "Salut"
-    -position: 8
+    -line: 1
+    -column: 9
   }
   3 => Iamluc\Script\Token {
     -type: "name"
     -value: "world"
-    -position: 16
+    -line: 2
+    -column: 1
   }
   4 => Iamluc\Script\Token {
     -type: "assign"
     -value: "="
-    -position: 22
+    -line: 2
+    -column: 7
   }
   5 => Iamluc\Script\Token {
     -type: "string"
     -value: "le monde !"
-    -position: 24
+    -line: 2
+    -column: 9
   }
   6 => Iamluc\Script\Token {
     -type: "end of file"
     -value: null
-    -position: null
+    -line: 2
+    -column: 21
   }
 ]
 EOD
@@ -95,6 +103,7 @@ if toto then
 else
     res = "KO"
 end
+
 EOS
         );
 
@@ -103,62 +112,74 @@ array:12 [
   0 => Iamluc\Script\Token {
     -type: "if"
     -value: "if"
-    -position: 0
+    -line: 1
+    -column: 1
   }
   1 => Iamluc\Script\Token {
     -type: "name"
     -value: "toto"
-    -position: 3
+    -line: 1
+    -column: 4
   }
   2 => Iamluc\Script\Token {
     -type: "then"
     -value: "then"
-    -position: 8
+    -line: 1
+    -column: 9
   }
   3 => Iamluc\Script\Token {
     -type: "name"
     -value: "res"
-    -position: 17
+    -line: 2
+    -column: 5
   }
   4 => Iamluc\Script\Token {
     -type: "assign"
     -value: "="
-    -position: 21
+    -line: 2
+    -column: 9
   }
   5 => Iamluc\Script\Token {
     -type: "string"
     -value: "OK"
-    -position: 23
+    -line: 2
+    -column: 11
   }
   6 => Iamluc\Script\Token {
     -type: "else"
     -value: "else"
-    -position: 28
+    -line: 3
+    -column: 1
   }
   7 => Iamluc\Script\Token {
     -type: "name"
     -value: "res"
-    -position: 37
+    -line: 4
+    -column: 5
   }
   8 => Iamluc\Script\Token {
     -type: "assign"
     -value: "="
-    -position: 41
+    -line: 4
+    -column: 9
   }
   9 => Iamluc\Script\Token {
     -type: "string"
     -value: "KO"
-    -position: 43
+    -line: 4
+    -column: 11
   }
   10 => Iamluc\Script\Token {
     -type: "end"
     -value: "end"
-    -position: 48
+    -line: 5
+    -column: 1
   }
   11 => Iamluc\Script\Token {
     -type: "end of file"
     -value: null
-    -position: null
+    -line: 6
+    -column: 1
   }
 ]
 EOD

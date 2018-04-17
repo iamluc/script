@@ -63,13 +63,15 @@ class Token
 
     private $type;
     private $value;
-    private $position;
+    private $line;
+    private $column;
 
-    public function __construct($type, $value = null, $position = null)
+    public function __construct($type, $value = null, int $line = -1, int $column = -1)
     {
         $this->type = $type;
         $this->value = $value;
-        $this->position = $position;
+        $this->line = $line;
+        $this->column = $column;
     }
 
     public function getType()
@@ -82,15 +84,20 @@ class Token
         return $this->value;
     }
 
-    public function getPosition()
+    public function getLine(): int
     {
-        return $this->position;
+        return $this->line;
+    }
+
+    public function getColumn(): int
+    {
+        return $this->column;
     }
 
     public function expect($types): self
     {
         if (!$this->is($types)) {
-            throw new \LogicException(sprintf('Expected "%s", got "%s"', implode(', ', (array) $types), $this->getType()));
+            throw new \LogicException(sprintf('Expected "%s", got "%s" (line %d, column %d)', implode(', ', (array) $types), $this->getType(), $this->line, $this->column));
         }
 
         return $this;
@@ -147,5 +154,10 @@ class Token
         }
 
         return $this->value;
+    }
+
+    public function __toString()
+    {
+        return sprintf('"%s" (line %d, column %d)', $this->type, $this->line, $this->column);
     }
 }
