@@ -110,6 +110,13 @@ EOS
 
     public function provideAssign()
     {
+        yield ['val = true', ['val' => true]];
+        yield ['val = TRUE', ['val' => null]];
+        yield ['val = "double quoted"', ['val' => 'double quoted']];
+        yield ["val = 'single quoted'", ['val' => 'single quoted']];
+        yield ['val = "double \"!!\" \'quoted\'"', ['val' => 'double "!!" \'quoted\'']];
+        yield ["val = 'single \"!!\" \\'quoted\\''", ['val' => 'single "!!" \'quoted\'']];
+
         yield [
             <<<EOS
 hello = "Salut"

@@ -47,6 +47,7 @@ class Token
 
     public const T_AND = 'and';
     public const T_OR = 'or';
+    public const T_NOT = 'not';
 
     public const T_LEFT_PAREN = 'left parenthesis';     // (
     public const T_RIGHT_PAREN = 'right parenthesis';   // )

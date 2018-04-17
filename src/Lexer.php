@@ -92,8 +92,10 @@ class Lexer
             return $this->next();
         }
 
-        // Boundary
-        if ($token = $this->match('/(and|or|if|then|elseif|else|end|while|do|repeat|until|for|in|function|local|return|break|goto)\b/A')) {
+        // FIXME: support multi-lines comments
+
+        // Keywords
+        if ($token = $this->match('/(true|false|nil|and|or|not|if|then|elseif|else|end|while|do|repeat|until|for|in|function|local|return|break|goto)\b/A')) {
             return new Token(self::$stringToToken[$token['match']], $token['match'], $token['cursor']);
         }
 
@@ -102,15 +104,9 @@ class Lexer
             return new Token(Token::T_LABEL, $token['match'], $token['cursor']);
         }
 
-        // No boundary
+        // Operators and punctuations
         if ($token = $this->match('/(==|~=|<=|<|>=|>|=|\+|-|\*|\/|\(|\)|\.\.|,|{|}|;)/A')) {
             return new Token(self::$stringToToken[$token['match']], $token['match'], $token['cursor']);
-        }
-
-        // Boundary + insensitive
-        if ($token = $this->match('/(true|false|nil)\b/Ai')) {
-            $constant = strtolower($token['match']);
-            return new Token(self::$stringToToken[$constant], $constant, $token['cursor']);
         }
 
         // Numbers
@@ -125,7 +121,7 @@ class Lexer
 
         // Strings
         if ($token = $this->match('/"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)"|\'([^\'\\\\]*(?:\\\\.[^\'\\\\]*)*)\'/As')) {
-            return new Token(Token::T_STRING, $token['match'], $token['cursor']);
+            return new Token(Token::T_STRING, stripcslashes($token['match']), $token['cursor']);
         }
 
         throw new \LogicException("Unable to tokenize the stream.");
@@ -137,7 +133,7 @@ class Lexer
             $token = [
                 'size' => strlen($matches[0]),
                 'full_match' => $matches[0],
-                'match' => $matches[1],
+                'match' => $matches[2] ?? $matches[1],
                 'cursor' => $this->cursor,
             ];
 
