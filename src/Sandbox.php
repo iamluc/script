@@ -203,8 +203,23 @@ blockstart:
     private function evaluateReturnNode(Node\ReturnNode $node)
     {
         $values = [];
+        $returnSet = null;
         foreach ($node->getValues() as $value) {
-            $values[] = $this->evaluateNode($value);
+            $returnSet = null;
+            if ($value instanceof Node\CallNode) {
+                $returnSet = $this->evaluateCallNode($value, false);
+                $res = $returnSet->first();
+            } else {
+                $res = $this->evaluateNode($value);
+            }
+
+            $values[] = $res;
+        }
+
+        if ($returnSet) { // A function call was the last statement, return all values
+            foreach ($returnSet->extra() as $value) {
+                $values[] = $value;
+            }
         }
 
         throw new ReturnException(new ReturnSet($values));

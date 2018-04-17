@@ -210,6 +210,32 @@ EOS
                 'z' => 'z',
             ]
         ];
+
+        yield [
+            <<<EOS
+function twice() return "first", "second" end
+function proxy() return twice() end
+x, y, z = "x", proxy()
+EOS
+            , [
+                'x' => 'x',
+                'y' => 'first',
+                'z' => 'second',
+            ]
+        ];
+
+        yield [
+            <<<EOS
+        function twice() return "first", "second" end
+function proxy() return twice(), "end" end
+x, y, z = "x", proxy()
+EOS
+            , [
+                'x' => 'x',
+                'y' => 'first',
+                'z' => 'end',
+            ]
+        ];
     }
 
     /**
