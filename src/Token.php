@@ -2,6 +2,9 @@
 
 namespace Iamluc\Script;
 
+/**
+ * @see https://hackage.haskell.org/package/language-lua-0.10.0/docs/Language-Lua-Token.html
+ */
 class Token
 {
     public const T_STRING = 'string';
@@ -37,6 +40,7 @@ class Token
     public const T_MINUS = 'minus';                     // -
     public const T_STAR = 'star';                       // *
     public const T_SLASH = 'slash';                     // /
+    public const T_EXP = 'exponent';                    // ^
 
     public const T_EQUAL = 'equal';                     // ==
     public const T_NOT_EQUAL = 'not equal';             // ~=

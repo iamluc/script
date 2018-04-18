@@ -24,6 +24,7 @@ class SandboxTest extends TestCase
 
     public function provideExpression()
     {
+        // Arithmetic
         yield ['123', 123];
         yield ['2 + 8 -1', 9];
         yield ['4 * 5', 20];
@@ -36,7 +37,13 @@ class SandboxTest extends TestCase
         yield ['5 / (4+1) * 6 + 3 * 2 * 2', 18];
         yield ['-5 - (-3-1)', -1];
         yield ['4.38+0.12', 4.5];
+        yield ['2^3', 8];
+        yield ['2^3^2', 512];
+        yield ['-3 ^ 2', -9];
+        yield ['1 - 3 ^ 2', -8];
+        yield ['1 ^ - 3 ^ - 2', 1];
 
+        // Comparison
         yield ['4*3 == 4+8', true];
         yield ['4*3 ~= 4+8', false];
         yield ['1 > 2', false];
@@ -47,27 +54,40 @@ class SandboxTest extends TestCase
         yield ['2 <= 2', true];
         yield ['3 <= 2', false];
 
+        // Logic
         yield ['true and true', true];
         yield ['true and false', false];
         yield ['false and false', false];
         yield ['true or true', true];
         yield ['true or false', true];
         yield ['false or false', false];
-
+        yield ['a = true 
+        return "a is " .. (a and "true!" or "false!")', 'a is true!', false];
+        yield ['a = false 
+        return "a is " .. (a and "true!" or "false!")', 'a is false!', false];
         yield ['1==1+1 or 2~=2*1 and true', false];
         yield ['1==1+1 or 2==2*1 and true', true];
         yield ['1==1+1 or 2==2*1 and false', false];
 
+        yield ['not true', false];
+        yield ['not false', true];
+        yield ['not 0', false];
+        yield ['not 12', false];
+        yield ['not 12', false];
+
+        // Concatenation
         yield ['"Hi".." my ".."friend"', 'Hi my friend'];
         yield ['12 .. " = twelve"', '12 = twelve'];
         yield ['(2*4) .." tests OK"', '8 tests OK'];
 
+        // Table
         yield ['{2+2, "blabla"; toto = 2 > 1}', [
             1 => 4,
             2 => 'blabla',
             'toto' => true
         ]];
 
+        // With variables
         yield [
             <<<EOS
 mult = 10
@@ -93,6 +113,24 @@ return 3
 EOS
             , 2, false
         ];
+    }
+
+    /**
+     * @dataProvider provideInvalidExpression
+     */
+    public function testInvalidExpression($script, $exceptionMessage)
+    {
+        $parser = new Parser();
+        $sandbox = new Sandbox();
+
+        $this->expectExceptionMessage($exceptionMessage);
+
+        $sandbox->eval($parser->parse('return '.$script));
+    }
+
+    public function provideInvalidExpression()
+    {
+        yield ['not 1 > 2', 'Attempt to compare number with boolean'];
     }
 
     /**
@@ -524,8 +562,8 @@ EOS
             'THE END'
         ];
 
-        yield ['while a < 3 do a = a + 1 end return a *2', ['a' => 3], 6];
-        yield ['while a <= 3 do a = a + 1 end return a *2', ['a' => 4], 8];
+        yield ['a = 0 while a < 3 do a = a + 1 end return a *2', ['a' => 3], 6];
+        yield ['a = 0 while a <= 3 do a = a + 1 end return a *2', ['a' => 4], 8];
         yield ['a = 3 while a >= 0 do a = a - 1 end return a *2', ['a' => -1], -2];
     }
 

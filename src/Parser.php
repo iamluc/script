@@ -11,26 +11,29 @@ class Parser
      * @see https://www.lua.org/pil/3.5.html
      */
     private $precedenceMap = [
-        Token::T_AND => 10,
         Token::T_OR => 10,
 
-        Token::T_EQUAL => 20,
-        Token::T_NOT_EQUAL => 20,
-        Token::T_LESS_THAN => 20,
-        Token::T_GREATER_THAN => 20,
-        Token::T_LESS_EQUAL => 20,
-        Token::T_GREATER_EQUAL => 20,
+        Token::T_AND => 20,
 
-        Token::T_DOUBLE_DOT => 30,
+        Token::T_EQUAL => 30,
+        Token::T_NOT_EQUAL => 30,
+        Token::T_LESS_THAN => 30,
+        Token::T_GREATER_THAN => 30,
+        Token::T_LESS_EQUAL => 30,
+        Token::T_GREATER_EQUAL => 30,
 
-        Token::T_PLUS => 40,
-        Token::T_MINUS => 40,
+        Token::T_DOUBLE_DOT => 40,
 
-        Token::T_STAR => 50,
-        Token::T_SLASH => 50,
+        Token::T_PLUS => 50,
+        Token::T_MINUS => 50,
 
-        // TODO: not / - (unary) => 60
-        // TODO: ^ => 70
+        Token::T_STAR => 60,
+        Token::T_SLASH => 60,
+
+//        Token::T_NOT => 70, // Unary --> inlined
+//        Token::T_MINUS => 70, // Unary --> inlined
+
+         Token::T_EXP => 80, // Right assoc
     ];
 
     /** @var TokenStream */
@@ -138,8 +141,12 @@ class Parser
                 $this->stream->expect((Token::T_RIGHT_PAREN));
                 break;
 
+            case Token::T_NOT:
+                $left = new Node\UnaryNode($this->parseExpression(70), 'not');
+                break;
+
             case Token::T_MINUS: // negative
-                $left = new Node\UnaryNode($this->parseExpression(100), '-');
+                $left = new Node\UnaryNode($this->parseExpression(70), '-');
                 break;
 
             case Token::T_PLUS: // positive, ignore
@@ -164,7 +171,8 @@ class Parser
             && ($this->precedenceMap[$next->getType()] > $precedence || 0 === $precedence)
         ) {
             $operation = $this->stream->peek();
-            $right = $this->parseExpression($this->precedenceMap[$operation->getType()]);
+            $newPrecedence = $this->precedenceMap[$operation->getType()];
+            $right = $this->parseExpression($operation->is(Token::T_EXP) ? $newPrecedence - 1 : $newPrecedence);
 
             $left = new Node\BinaryNode($left, $operation->getValue(), $right);
         }

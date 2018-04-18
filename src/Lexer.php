@@ -36,6 +36,7 @@ class Lexer
 
         'and' => Token::T_AND,
         'or' => Token::T_OR,
+        'not' => Token::T_NOT,
 
         '=' => Token::T_ASSIGN,
         '==' => Token::T_EQUAL,
@@ -49,6 +50,7 @@ class Lexer
         '-' => Token::T_MINUS,
         '*' => Token::T_STAR,
         '/' => Token::T_SLASH,
+        '^' => Token::T_EXP,
 
         '(' => Token::T_LEFT_PAREN,
         ')' => Token::T_RIGHT_PAREN,
@@ -106,7 +108,7 @@ class Lexer
         }
 
         // Operators and punctuations
-        if ($token = $this->match('/(==|~=|<=|<|>=|>|=|\+|-|\*|\/|\(|\)|\.\.|,|{|}|;)/A')) {
+        if ($token = $this->match('/(==|~=|<=|<|>=|>|=|\+|-|\*|\/|\(|\)|\.\.|,|{|}|;|\^)/A')) {
             return new Token(self::$stringToToken[$token['match']], $token['match'], $token['line'], $token['column']);
         }
 

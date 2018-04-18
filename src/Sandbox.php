@@ -409,45 +409,57 @@ blockstart:
 
     private function evaluateBinaryNode(Node\BinaryNode $node)
     {
+        $left = $this->evaluateNode($node->getLeft());
+
         switch ($node->getOperator()) {
-            case '==':
-                return $this->evaluateNode($node->getLeft()) === $this->evaluateNode($node->getRight());
-
-            case '~=':
-                return $this->evaluateNode($node->getLeft()) !== $this->evaluateNode($node->getRight());
-
-            case '>':
-                return $this->evaluateNode($node->getLeft()) > $this->evaluateNode($node->getRight());
-
-            case '>=':
-                return $this->evaluateNode($node->getLeft()) >= $this->evaluateNode($node->getRight());
-
-            case '<':
-                return $this->evaluateNode($node->getLeft()) < $this->evaluateNode($node->getRight());
-
-            case '<=':
-                return $this->evaluateNode($node->getLeft()) <= $this->evaluateNode($node->getRight());
-
             case 'and':
-                return $this->evaluateNode($node->getLeft()) && $this->evaluateNode($node->getRight());
+                return $left ? $this->evaluateNode($node->getRight()) : $left;
 
             case 'or':
-                return $this->evaluateNode($node->getLeft()) || $this->evaluateNode($node->getRight());
+                return $left ?: $this->evaluateNode($node->getRight());
+        }
 
-            case '+':
-                return $this->evaluateNode($node->getLeft()) + $this->evaluateNode($node->getRight());
+        $right = $this->evaluateNode($node->getRight());
 
-            case '-':
-                return $this->evaluateNode($node->getLeft()) - $this->evaluateNode($node->getRight());
+        switch ($node->getOperator()) {
+            case '==':
+                return $left === $right;
 
-            case '*':
-                return $this->evaluateNode($node->getLeft()) * $this->evaluateNode($node->getRight());
-
-            case '/':
-                return $this->evaluateNode($node->getLeft()) / $this->evaluateNode($node->getRight());
+            case '~=':
+                return $left !== $right;
 
             case '..':
-                return $this->evaluateNode($node->getLeft()) . $this->evaluateNode($node->getRight());
+                return $left . $right;
+        }
+
+        $this->assertNumbers($left, $right);
+        switch ($node->getOperator()) {
+            case '>':
+                return $left > $right;
+
+            case '>=':
+                return $left >= $right;
+
+            case '<':
+                return $left < $right;
+
+            case '<=':
+                return $left <= $right;
+
+            case '+':
+                return $left + $right;
+
+            case '-':
+                return $left - $right;
+
+            case '*':
+                return $left * $right;
+
+            case '/':
+                return $left / $right;
+
+            case '^':
+                return $left ** $right;
         }
 
         throw new \LogicException(sprintf('Cannot evaluate binary node with operator "%s"', $node->getOperator()));
@@ -458,6 +470,11 @@ blockstart:
         switch ($node->getOperator()) {
             case '-':
                 return -$this->evaluateNode($node->getValue());
+
+            case 'not':
+                $value = $this->evaluateNode($node->getValue());
+
+                return is_bool($value) ? !$value : false;
         }
 
         throw new \LogicException(sprintf('Cannot evaluate unary node with operator "%s"', $node->getOperator()));
@@ -466,5 +483,20 @@ blockstart:
     private function evaluateDoNode(Node\DoNode $node)
     {
         $this->evaluateBlockNode($node->getBlock());
+    }
+
+    private function assertNumbers($left, $right)
+    {
+        if (!is_numeric($left) || !is_numeric($right)) {
+            throw new \LogicException(sprintf('Attempt to compare %s with %s', $this->getResolvedType($right), $this->getResolvedType($left)));
+        }
+    }
+
+    private function getResolvedType($left): string
+    {
+        return strtr(gettype($left), [
+            'double' => 'number',
+            'NULL' => 'nil',
+        ]);
     }
 }
