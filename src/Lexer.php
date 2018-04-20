@@ -90,12 +90,15 @@ class Lexer
             return $this->next();
         }
 
-        // Ignore comments
-        if ($token = $this->match('/--(.*)/A')) {
+        // Ignore long comments
+        if ($token = $this->match('/--\[(?<length>=*)\[(.*)--\]\1\]/As')) {
             return $this->next();
         }
 
-        // FIXME: support multi-lines comments
+        // Ignore short comments
+        if ($token = $this->match('/--(.*)/A')) {
+            return $this->next();
+        }
 
         // Keywords
         if ($token = $this->match('/(true|false|nil|and|or|not|if|then|elseif|else|end|while|do|repeat|until|for|in|function|local|return|break|goto)\b/A')) {
@@ -122,7 +125,12 @@ class Lexer
             return new Token(Token::T_NAME, $token['match'], $token['line'], $token['column']);
         }
 
-        // Strings
+        // Double square brackets strings
+        if ($token = $this->match('/\[\[([^\]]*)\]\]/As')) { // FIXME: Improvements needed
+            return new Token(Token::T_STRING, stripcslashes($token['match']), $token['line'], $token['column']);
+        }
+
+        // Single quotes and double quotes strings
         if ($token = $this->match('/("([^"\\\\]*(?:\\\\.[^"\\\\]*)*)"|\'([^\'\\\\]*(?:\\\\.[^\'\\\\]*)*)\')/As')) {
             return new Token(Token::T_STRING, stripcslashes(substr($token['match'], 1, -1)), $token['line'], $token['column']);
         }

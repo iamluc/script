@@ -79,6 +79,7 @@ class SandboxTest extends TestCase
         yield ['"Hi".." my ".."friend"', 'Hi my friend'];
         yield ['12 .. " = twelve"', '12 = twelve'];
         yield ['(2*4) .." tests OK"', '8 tests OK'];
+        yield ['[["double squared" ]] ..[[string]]', '"double squared" string'];
 
         // Table
         yield ['{2+2, "blabla"; toto = 2 > 1}', [
@@ -1033,5 +1034,83 @@ EOS
 //                'res' => 8,
 //            ],
 //        ];
+    }
+
+    /**
+     * @dataProvider provideComments
+     */
+    public function testComments($script, $expectedGlobals, $expectedResult = null)
+    {
+        $parser = new Parser();
+        $sandbox = new Sandbox();
+
+        $block = $parser->parse($script);
+        $result = $sandbox->eval($block);
+
+        $this->assertEquals($expectedGlobals, $sandbox->getGlobals());
+        $this->assertEquals($expectedResult, $result);
+    }
+
+    public function provideComments()
+    {
+        yield [
+            <<<EOS
+-- return 1
+return 2
+EOS
+            , [], 2
+        ];
+
+        yield [
+            <<<EOS
+-- prepare return
+return "OK" -- do the return
+EOS
+            , [], 'OK'
+        ];
+
+        yield [
+            <<<EOS
+return "-- this is not a comment" -- do the return
+EOS
+            , [], '-- this is not a comment'
+        ];
+
+        yield [
+            <<<EOS
+return "-- this is not a comment" -- do the return
+EOS
+            , [], '-- this is not a comment'
+        ];
+
+        yield [
+            <<<EOS
+--[[
+    Single long comment block
+--]]
+return 'OK'
+EOS
+            , [], 'OK'
+        ];
+
+        yield [
+            <<<EOS
+--[===[
+    Single long comment block
+--]===]
+return 'OK'
+EOS
+            , [], 'OK'
+        ];
+
+        yield [
+            <<<EOS
+--[===[
+    You can write long comments with --[[ --]]
+--]===]
+return 'OK'
+EOS
+            , [], 'OK'
+        ];
     }
 }

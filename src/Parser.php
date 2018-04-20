@@ -5,6 +5,9 @@ namespace Iamluc\Script;
 use Iamluc\Script\Node\BlockNode;
 use Iamluc\Script\Node\NoOperationNode;
 
+/**
+ * @see https://www.lua.org/manual/5.3/manual.html#9
+ */
 class Parser
 {
     /**
