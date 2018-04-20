@@ -40,6 +40,13 @@ class ScopeStack
         unset($this->stack[$this->index--]);
     }
 
+    public function setVariables(array $vars, $local = false)
+    {
+        foreach ($vars as $name => $value) {
+            $this->setVariable($name, $value, $local);
+        }
+    }
+
     public function setVariable($name, $value, $local = false)
     {
         if ($local) {

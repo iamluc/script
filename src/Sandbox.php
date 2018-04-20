@@ -202,25 +202,7 @@ blockstart:
 
     private function evaluateReturnNode(Node\ReturnNode $node)
     {
-        $values = [];
-        $returnSet = null;
-        foreach ($node->getValues() as $value) {
-            $returnSet = null;
-            if ($value instanceof Node\CallNode) {
-                $returnSet = $this->evaluateCallNode($value, false);
-                $res = $returnSet->first();
-            } else {
-                $res = $this->evaluateNode($value);
-            }
-
-            $values[] = $res;
-        }
-
-        if ($returnSet) { // A function call was the last statement, return all values
-            foreach ($returnSet->extra() as $value) {
-                $values[] = $value;
-            }
-        }
+        $values = $this->evaluateExpressionList($node->getValues());
 
         throw new ReturnException(new ReturnSet($values));
     }
@@ -330,64 +312,59 @@ blockstart:
      */
     private function evaluateAssignNode(Node\AssignNode $node)
     {
+        $resolvedValues = $this->evaluateExpressionList(array_filter(array_values($node->getAssignments())));
+
         $assignments = [];
-        $notDefined = [];
-        $lastCall = null;
         foreach ($node->getAssignments() as $name => $value) {
-            if (null === $value) { // less values than variables
-                $notDefined[] = $name;
-                continue;
-            }
-
-            $lastCall = null;
-            if ($value instanceof Node\CallNode) { // We must keep all results of the call
-                $lastCall = $this->evaluateCallNode($value, false);
-                $value = $lastCall->first();
-            } elseif (!$value instanceof FunctionDefinitionInterface) {
-                $value = $this->evaluateNode($value);
-            }
-
-            $assignments[$name] = $value;
+            $assignments[$name] = array_shift($resolvedValues);
         }
 
-        if ($notDefined) {
-            $extra = $lastCall instanceof ReturnSet ? $lastCall->extra() : [];
-            $extra = array_pad($extra, count($notDefined), null);
-
-            foreach ($notDefined as $name) {
-                $assignments[$name] = array_shift($extra);
-            }
-        }
-
-        foreach ($assignments as $name => $value) {
-            $this->scopeStack->setVariable($name, $value, $node->isLocal());
-        }
+        $this->scopeStack->setVariables($assignments, $node->isLocal());
     }
 
-    private function evaluateCallNode(Node\CallNode $node, $firstOnly = true)
+    private function evaluateCallNode(Node\CallNode $call, $firstOnly = true)
     {
-        $function = $this->scopeStack->getFunction($node->getFunctionName());
+        $function = $this->scopeStack->getFunction($call->getFunctionName());
+        $resolvedValues = $this->evaluateExpressionList($call->getArguments());
 
-        $args = $node->getArguments();
-        $values = [];
+        $args = [];
         foreach ($function->getArguments() as $i => $name) {
-            if (isset($args[$i])) {
-                $values[$name] = $this->evaluateNode($args[$i]);
-            } else {
-                $values[$name] = null;
-            }
+            $args[$name] = array_shift($resolvedValues);
         }
 
         if ($function instanceof Node\FunctionDefinition\PhpFunctionNode) {
-            return call_user_func($function->getCallable(), ...array_values($values));
+            return call_user_func($function->getCallable(), ...array_values($args));
         }
 
-        $set = $this->evaluateBlockNode($function->getBlock(), true, new Scope($values));
+        $set = $this->evaluateBlockNode($function->getBlock(), true, new Scope($args));
         if ($firstOnly) {
             return $set->first();
         }
 
         return $set;
+    }
+
+    private function evaluateExpressionList(array $expressions): array
+    {
+        $values = [];
+        $extra = [];
+        foreach ($expressions as $expr) {
+            $extra = [];
+            if ($expr instanceof Node\CallNode) { // We must keep all results of the call
+                $returnSet = $this->evaluateCallNode($expr, false);
+                $extra = $returnSet->extra();
+
+                $values[] = $returnSet->first();
+            } else {
+                $values[] = $this->evaluateNode($expr);
+            }
+        }
+
+        if ($extra) {
+            $values = array_merge($values, $extra);
+        }
+
+        return $values;
     }
 
     private function evaluateTableNode(Node\TableNode $node)

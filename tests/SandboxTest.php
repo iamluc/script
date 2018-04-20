@@ -281,6 +281,32 @@ EOS
                 'z' => 'end',
             ]
         ];
+
+        yield [
+            <<<EOS
+function twice() return "first", "second" end
+function nop(a, b, c) return a, b, c end
+a, b, c = nop(twice())
+EOS
+            , [
+                'a' => 'first',
+                'b' => 'second',
+                'c' => null,
+            ]
+        ];
+
+        yield [
+            <<<EOS
+function twice() return "first", "second" end
+function nop(a, b, c) return a, b, c end
+a, b, c = nop(twice(), 'deuz')
+EOS
+            , [
+                'a' => 'first',
+                'b' => 'deuz',
+                'c' => null,
+            ]
+        ];
     }
 
     /**
