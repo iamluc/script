@@ -56,6 +56,8 @@ class Lexer
         ')' => Token::T_RIGHT_PAREN,
         '{' => Token::T_LEFT_BRACE,
         '}' => Token::T_RIGHT_BRACE,
+        '[' => Token::T_LEFT_BRACKET,
+        ']' => Token::T_RIGHT_BRACKET,
         ',' => Token::T_COMMA,
         ';' => Token::T_SEMI_COLON,
         '..' => Token::T_DOUBLE_DOT,
@@ -110,8 +112,13 @@ class Lexer
             return new Token(Token::T_LABEL, $token['match'], $token['line'], $token['column']);
         }
 
+        // Double square brackets strings
+        if ($token = $this->match('/\[\[([^\]]*)\]\]/As')) { // FIXME: Improvements needed
+            return new Token(Token::T_STRING, stripcslashes($token['match']), $token['line'], $token['column']);
+        }
+
         // Operators and punctuations
-        if ($token = $this->match('/(==|~=|<=|<|>=|>|=|\+|-|\*|\/|\(|\)|\.\.|,|{|}|;|\^)/A')) {
+        if ($token = $this->match('/(==|~=|<=|<|>=|>|=|\+|-|\*|\/|\(|\)|\.\.|,|{|}|;|\^|\[|\])/A')) {
             return new Token(self::$stringToToken[$token['match']], $token['match'], $token['line'], $token['column']);
         }
 
@@ -123,11 +130,6 @@ class Lexer
         // Variables
         if ($token = $this->match('/([\w-_]+)/A')) {
             return new Token(Token::T_NAME, $token['match'], $token['line'], $token['column']);
-        }
-
-        // Double square brackets strings
-        if ($token = $this->match('/\[\[([^\]]*)\]\]/As')) { // FIXME: Improvements needed
-            return new Token(Token::T_STRING, stripcslashes($token['match']), $token['line'], $token['column']);
         }
 
         // Single quotes and double quotes strings

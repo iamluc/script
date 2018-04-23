@@ -8,7 +8,6 @@ use Iamluc\Script\Exception\GotoException;
 use Iamluc\Script\Exception\ReturnException;
 use Iamluc\Script\Lib\BasicLib;
 use Iamluc\Script\Node\AssignNode;
-use Iamluc\Script\Node\FunctionDefinition\FunctionDefinitionInterface;
 use Iamluc\Script\Node\LabelNode;
 
 class Sandbox
@@ -131,6 +130,10 @@ blockstart:
 
         if ($node instanceof Node\VariableNode) {
             return $this->scopeStack->getVariable($node->getVariable());
+        }
+
+        if ($node instanceof Node\IndexNode) {
+            return $this->evaluateIndexNode($node);
         }
 
         if ($node instanceof Node\DoNode) {
@@ -370,18 +373,31 @@ blockstart:
     private function evaluateTableNode(Node\TableNode $node)
     {
         $index = 0;
-        $res = [];
+        $table = [];
+        $extra = [];
         foreach ($node->getFields() as $field) {
+            $extra = [];
             if ($field instanceof AssignNode) {
                 foreach ($field->getAssignments() as $name => $value) {
-                    $res[$name] = $this->evaluateNode($value);
+                    $table[$name] = $this->evaluateNode($value);
                 }
+            } elseif ($field instanceof Node\CallNode) {
+                $returnSet = $this->evaluateCallNode($field, false);
+                $extra = $returnSet->extra();
+
+                $table[++$index] = $returnSet->first();
             } else {
-                $res[++$index] = $this->evaluateNode($field);
+                $table[++$index] = $this->evaluateNode($field);
             }
         }
 
-        return $res;
+        if ($extra) {
+            foreach ($extra as $value) {
+                $table[++$index] = $value;
+            }
+        }
+
+        return $table;
     }
 
     private function evaluateBinaryNode(Node\BinaryNode $node)
@@ -460,6 +476,19 @@ blockstart:
     private function evaluateDoNode(Node\DoNode $node)
     {
         $this->evaluateBlockNode($node->getBlock());
+    }
+
+    private function evaluateIndexNode(Node\IndexNode $node)
+    {
+        $var = $this->scopeStack->getVariable($node->getVariable());
+
+        if (!is_array($var)) {
+            throw new \LogicException(sprintf('Attempt to index a nil value "%s"', $node->getVariable()));
+        }
+
+        $key = $this->evaluateNode($node->getKey());
+
+        return $var[$key] ?? null;
     }
 
     private function assertNumbers($left, $right)

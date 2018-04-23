@@ -88,6 +88,45 @@ class SandboxTest extends TestCase
             'toto' => true
         ]];
 
+        yield [
+            <<<EOS
+function func() return "11", "22", 33 end
+return {"a", "b", func(), "d"}
+EOS
+            , [
+                1 => 'a',
+                2 => 'b',
+                3 => '11',
+                4 => 'd',
+            ], false
+        ];
+
+        yield [
+            <<<EOS
+function func() return "11", "22", 33 end
+return {"a", "b", func()}
+EOS
+            , [
+                1 => 'a',
+                2 => 'b',
+                3 => '11',
+                4 => '22',
+                5 => '33',
+            ], false
+        ];
+
+        yield [
+            <<<EOS
+function func() return "11", "22", 33 end
+return {"a", "b", first = func()}
+EOS
+            , [
+                1 => 'a',
+                2 => 'b',
+                'first' => '11',
+            ], false
+        ];
+
         // With variables
         yield [
             <<<EOS
@@ -104,6 +143,15 @@ b = -3
 return a * b
 EOS
             , 6, false
+        ];
+
+        yield [
+            <<<EOS
+john = {name = "John", age = 12}
+
+return 'My name is '..john['nam'..'e']
+EOS
+            , "My name is John", false
         ];
 
         yield [
@@ -132,6 +180,7 @@ EOS
     public function provideInvalidExpression()
     {
         yield ['not 1 > 2', 'Attempt to compare number with boolean'];
+        yield ['zz["42"]', 'Attempt to index a nil value "zz"'];
     }
 
     /**

@@ -161,9 +161,10 @@ class Parser
                     throw new \LogicException(sprintf('Expected a scalar, a variable or a function call as start of the expression. Got %s', $token));
                 }
 
-                // Function call
-                if ($token->isVariable() && $this->stream->nextIs(Token::T_LEFT_PAREN)) {
+                if ($token->isVariable() && $this->stream->nextIs(Token::T_LEFT_PAREN)) { // Function call
                     $left = $this->parseCall($token);
+                } elseif ($token->isVariable() && $this->stream->nextIs(Token::T_LEFT_BRACKET)) { // Table
+                    $left = $this->parseTableExpression($token);
                 } else {
                     $left = $this->convertToNode($token);
                 }
@@ -403,8 +404,6 @@ class Parser
 
     private function parseField()
     {
-        // FIXME: support []
-
         $token = $this->stream->peek();
         if ($token->is(Token::T_NAME) && $this->stream->nextIs(Token::T_ASSIGN)) {
             $name = $token->getValue();
@@ -417,6 +416,15 @@ class Parser
         $this->stream->rewind(); // ...
 
         return $this->parseExpression();
+    }
+
+    private function parseTableExpression(Token $var)
+    {
+        $this->stream->expect(Token::T_LEFT_BRACKET);
+        $key = $this->parseExpression();
+        $this->stream->expect(Token::T_RIGHT_BRACKET);
+
+        return new Node\IndexNode($var->getValue(), $key);
     }
 
     private function convertToNode(Token $token): Node\Node
