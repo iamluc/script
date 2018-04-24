@@ -93,7 +93,7 @@ class Lexer
         }
 
         // Ignore long comments
-        if ($token = $this->match('/--\[(?<length>=*)\[(.*)--\]\1\]/As')) {
+        if ($token = $this->match('/--\[(?<length>=*)\[(.*)--\](?P=length)\]/As')) {
             return $this->next();
         }
 
@@ -113,8 +113,8 @@ class Lexer
         }
 
         // Double square brackets strings
-        if ($token = $this->match('/\[\[([^\]]*)\]\]/As')) { // FIXME: Improvements needed
-            return new Token(Token::T_STRING, stripcslashes($token['match']), $token['line'], $token['column']);
+        if ($token = $this->match('/\[(?<length>=*)\[((?:(?!\]\1\]).)*)\](?P=length)\]/As', 2)) {
+            return new Token(Token::T_STRING, $token['match'], $token['line'], $token['column']);
         }
 
         // Operators and punctuations
@@ -133,18 +133,18 @@ class Lexer
         }
 
         // Single quotes and double quotes strings
-        if ($token = $this->match('/("([^"\\\\]*(?:\\\\.[^"\\\\]*)*)"|\'([^\'\\\\]*(?:\\\\.[^\'\\\\]*)*)\')/As')) {
+        if ($token = $this->match('/("([^"\n\\\\]*(?:\\\\.[^"\\\\]*)*)"|\'([^\'\n\\\\]*(?:\\\\.[^\'\\\\]*)*)\')/A')) {
             return new Token(Token::T_STRING, stripcslashes(substr($token['match'], 1, -1)), $token['line'], $token['column']);
         }
 
         throw new \LogicException(sprintf('Unable to tokenize the stream near "%s ..." (line %d, column %d).', substr($this->stream, $this->cursor, 20), $this->line, $this->column));
     }
 
-    private function match($regex)
+    private function match($regex, $index = 1)
     {
         if (1 === preg_match($regex, $this->stream, $matches, 0, $this->cursor)) {
             $token = [
-                'match' => $matches[1],
+                'match' => $matches[$index],
                 'cursor' => $this->cursor,
                 'line' => $this->line,
                 'column' => $this->column,

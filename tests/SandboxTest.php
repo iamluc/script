@@ -43,6 +43,18 @@ class SandboxTest extends TestCase
         yield ['1 - 3 ^ 2', -8];
         yield ['1 ^ - 3 ^ - 2', 1];
 
+        // Strings
+        yield ["'single quote'", 'single quote'];
+        yield ["'single quote'", 'single quote'];
+        yield ['"double quote"', 'double quote'];
+        yield ['"double\tquote"', "double\tquote"];
+        yield ['[[double square brackets]]', 'double square brackets'];
+        yield ['[[double\tsquare\nbrackets]]', 'double\tsquare\nbrackets'];
+        yield ['[[first line
+new line]]', "first line\nnew line"];
+        yield ['[=[one [[two]] one]=]', 'one [[two]] one'];
+        yield ['[=[one [ [==[ one]=]', 'one [ [==[ one'];
+
         // Comparison
         yield ['4*3 == 4+8', true];
         yield ['4*3 ~= 4+8', false];
@@ -172,15 +184,21 @@ EOS
         $parser = new Parser();
         $sandbox = new Sandbox();
 
-        $this->expectExceptionMessage($exceptionMessage);
+        $this->expectExceptionMessageRegExp($exceptionMessage);
 
-        $sandbox->eval($parser->parse('return '.$script));
+        $res = $parser->parse('return '.$script);
+        $sandbox->eval($res);
     }
 
     public function provideInvalidExpression()
     {
-        yield ['not 1 > 2', 'Attempt to compare number with boolean'];
-        yield ['zz["42"]', 'Attempt to index a nil value "zz"'];
+        yield ['not 1 > 2', '/Attempt to compare number with boolean/'];
+        yield ['zz["42"]', '/Attempt to index a nil value "zz"/'];
+        yield ["'first line
+new line'", '/Unable to tokenize the stream near/']; // FIXME: Should be "Unfinished string near ..."
+        yield ['"first line
+new line"', '/Unable to tokenize the stream near/']; // FIXME: Should be "Unfinished string near ..."
+        yield ['[[one [[two]] one]]', '/Invalid token in statement: "name"/']; // FIXME: Should be something like "<eof> expected near 'one'"
     }
 
     /**
