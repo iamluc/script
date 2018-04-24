@@ -6,8 +6,12 @@ class ReturnSet
 {
     private $values;
 
-    public function __construct(array $values = [])
+    public function __construct($values = [])
     {
+        if (!\is_array($values)) {
+            $values = [$values];
+        }
+
         $this->values = $values;
     }
 

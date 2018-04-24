@@ -11,7 +11,7 @@ class SandboxTest extends TestCase
     /**
      * @dataProvider provideExpression
      */
-    public function testExpression($script, $expected, $autoReturn = true)
+    public function testExpression($script, $expected, $autoReturn = true, $exptectedOutput = '')
     {
         $parser = new Parser();
         $sandbox = new Sandbox();
@@ -20,6 +20,7 @@ class SandboxTest extends TestCase
         $result = $sandbox->eval($parser->parse($script));
 
         $this->assertEquals($expected, $result);
+        $this->assertEquals($exptectedOutput, (string) $sandbox->getOutput());
     }
 
     public function provideExpression()
@@ -168,6 +169,26 @@ EOS
 
         yield [
             <<<EOS
+john = {name = "John", age = 12}
+
+return 'My name is '..john.name
+EOS
+            , "My name is John", false
+        ];
+
+        yield [
+            <<<EOS
+c = {d = io.write}
+a = {b = c}
+a.b.d("Hello world, from ",_VERSION,"!\\n")
+EOS
+            , null, false,
+            'Hello world, from Lua 5.3!
+'
+        ];
+
+        yield [
+            <<<EOS
 return 2
 
 return 3
@@ -179,26 +200,30 @@ EOS
     /**
      * @dataProvider provideInvalidExpression
      */
-    public function testInvalidExpression($script, $exceptionMessage)
+    public function testInvalidExpression($script, $exceptionMessage, $autoReturn = true)
     {
         $parser = new Parser();
         $sandbox = new Sandbox();
 
         $this->expectExceptionMessageRegExp($exceptionMessage);
 
-        $res = $parser->parse('return '.$script);
+        $script = $autoReturn ? 'return '.$script : $script;
+        $res = $parser->parse($script);
         $sandbox->eval($res);
     }
 
     public function provideInvalidExpression()
     {
         yield ['not 1 > 2', '/Attempt to compare number with boolean/'];
-        yield ['zz["42"]', '/Attempt to index a nil value "zz"/'];
+        yield ['zz["42"]', '/Attempt to index a nil value \(variable "zz"\)/'];
+        yield ['a = 42 a.test', '/Attempt to index a number value \(variable "a"\)/', false];
+        yield ['zz = {} zz.toto.tata', '/Attempt to index a nil value \(field "toto"\)/', false];
+        yield ['a = 12 zz = {tab = a} zz.tab.b', '/Attempt to index a number value \(field "tab"\)/', false];
         yield ["'first line
 new line'", '/Unable to tokenize the stream near/']; // FIXME: Should be "Unfinished string near ..."
         yield ['"first line
 new line"', '/Unable to tokenize the stream near/']; // FIXME: Should be "Unfinished string near ..."
-        yield ['[[one [[two]] one]]', '/Invalid token in statement: "name"/']; // FIXME: Should be something like "<eof> expected near 'one'"
+        yield ['[[one [[two]] one]]', '/Invalid token in statement/']; // FIXME: Should be something like "<eof> expected near 'one'"
     }
 
     /**
@@ -373,6 +398,16 @@ EOS
                 'a' => 'first',
                 'b' => 'deuz',
                 'c' => null,
+            ]
+        ];
+
+        yield [
+            <<<EOS
+tab = {uu = 8}
+tab.val = 12
+EOS
+            , [
+                'tab' => ['val' => 12, 'uu' => 8],
             ]
         ];
     }

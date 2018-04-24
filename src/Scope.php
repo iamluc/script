@@ -37,7 +37,16 @@ class Scope
             return $this->variables;
         }
 
-        return array_filter($this->variables, function ($val) {
+        $vars = [];
+        foreach ($this->variables as $name => $value) {
+            if ($value instanceof Table) {
+                $value = $value->toArray();
+            }
+
+            $vars[$name] = $value;
+        }
+
+        return array_filter($vars, function ($val) {
             return !$val instanceof Node\FunctionDefinition\FunctionDefinitionInterface;
         });
     }

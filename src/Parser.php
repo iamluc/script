@@ -2,9 +2,6 @@
 
 namespace Iamluc\Script;
 
-use Iamluc\Script\Node\BlockNode;
-use Iamluc\Script\Node\NoOperationNode;
-
 /**
  * @see https://www.lua.org/manual/5.3/manual.html#9
  */
@@ -115,14 +112,8 @@ class Parser
             return $this->parseLocal();
         }
 
-        // Function call
-        if ($token->isVariable() && $this->stream->nextIs(Token::T_LEFT_PAREN)) {
-            return $this->parseCall($token);
-        }
-
-        // Regular assignment (not local)
-        if ($token->isVariable() && $this->stream->nextIs([Token::T_ASSIGN, Token::T_COMMA])) {
-            return $this->parseAssign($token);
+        if ($token->isName()) {
+            return $this->parseVariableExpression($this->convertToNode($token), true);
         }
 
         throw new \LogicException(sprintf('Invalid token in statement: %s', $token));
@@ -157,14 +148,12 @@ class Parser
                 // no break
 
             default:
-                if (!$token->isScalar() && !$token->isVariable()) {
+                if (!$token->isScalar() && !$token->isName()) {
                     throw new \LogicException(sprintf('Expected a scalar, a variable or a function call as start of the expression. Got %s', $token));
                 }
 
-                if ($token->isVariable() && $this->stream->nextIs(Token::T_LEFT_PAREN)) { // Function call
-                    $left = $this->parseCall($token);
-                } elseif ($token->isVariable() && $this->stream->nextIs(Token::T_LEFT_BRACKET)) { // Table
-                    $left = $this->parseTableExpression($token);
+                if ($token->isName()) {
+                    $left = $this->parseVariableExpression($this->convertToNode($token));
                 } else {
                     $left = $this->convertToNode($token);
                 }
@@ -182,6 +171,27 @@ class Parser
         }
 
         return $left;
+    }
+
+    private function parseVariableExpression(Node\Node $var, $allowAssign = false)
+    {
+        while ($this->stream->nextIs([Token::T_DOT, Token::T_LEFT_BRACKET])) {
+            if ($this->stream->nextIs(Token::T_DOT)) {
+                $var = $this->parseDotExpression($var);
+            } else {
+                $var = $this->parseTableExpression($var);
+            }
+        }
+
+        if ($this->stream->nextIs(Token::T_LEFT_PAREN)) {
+            return $this->parseCall($var);
+        }
+
+        if ($allowAssign && $this->stream->nextIs([Token::T_ASSIGN, Token::T_COMMA])) {
+            return $this->parseAssign($var);
+        }
+
+        return $var;
     }
 
     private function parseExpressionList()
@@ -272,8 +282,8 @@ class Parser
         }
 
         // if alone
-        if ($if instanceof BlockNode) {
-            $if = new Node\ConditionalNode($condition, $if, new NoOperationNode());
+        if ($if instanceof Node\BlockNode) {
+            $if = new Node\ConditionalNode($condition, $if, new Node\NoOperationNode());
         }
 
         if ($end) {
@@ -283,7 +293,7 @@ class Parser
         return $if;
     }
 
-    private function parseCall(Token $name): Node\CallNode
+    private function parseCall(Node\Node $var): Node\CallNode
     {
         $this->stream->expect(Token::T_LEFT_PAREN);
         $args = [];
@@ -298,7 +308,7 @@ class Parser
         }
         $this->stream->expect(Token::T_RIGHT_PAREN);
 
-        return new Node\CallNode($name->getValue(), $args);
+        return new Node\CallNode($var, $args);
     }
 
     private function parseFunction(): Node\FunctionDefinition\ScriptFunctionNode
@@ -326,7 +336,7 @@ class Parser
     {
         $name = $this->stream->expect(Token::T_NAME);
 
-        return new Node\AssignNode([$name->getValue() => $this->parseFunction()], false);
+        return new Node\AssignNode($this->convertToNode($name), $this->parseFunction(), false);
     }
 
     private function parseReturn(): Node\ReturnNode
@@ -351,24 +361,20 @@ class Parser
         return new Node\GotoNode($target->getValue());
     }
 
-    private function parseAssign(Token $first, $local = false): Node\AssignNode
+    private function parseAssign(Node\Node $first, $local = false): Node\AssignNode
     {
-        $vars = [$first->getValue()];
+        $vars = [$first];
         while ($this->stream->nextIs(Token::T_COMMA)) {
             $this->stream->expect(Token::T_COMMA);
-            $vars[] = $this->stream->expect(Token::T_NAME)->getValue();
+            $name = $this->stream->expect(Token::T_NAME);
+            $vars[] = $this->convertToNode($name);
         }
 
         $this->stream->expect(Token::T_ASSIGN);
 
         $values = $this->parseExpressionList();
-        if (\count($values) > \count($vars)) {
-            $values = \array_slice($values, 0, \count($vars));
-        } elseif (\count($values) < \count($vars)) {
-            $values = array_pad($values, \count($vars), null);
-        }
 
-        return new Node\AssignNode(array_combine($vars, $values), $local);
+        return new Node\AssignNode($vars, $values, $local);
     }
 
     private function parseLocal()
@@ -376,12 +382,12 @@ class Parser
         $type = $this->stream->expect([Token::T_NAME, Token::T_FUNCTION]);
 
         if ($type->is(Token::T_NAME)) {
-            return $this->parseAssign($type, true);
+            return $this->parseAssign($this->convertToNode($type), true);
         }
 
         $name = $this->stream->expect(Token::T_NAME);
 
-        return new Node\AssignNode([$name->getValue() => $this->parseFunction()], true);
+        return new Node\AssignNode($this->convertToNode($name), $this->parseFunction(), true);
     }
 
     /**
@@ -406,11 +412,10 @@ class Parser
     {
         $token = $this->stream->peek();
         if ($token->is(Token::T_NAME) && $this->stream->nextIs(Token::T_ASSIGN)) {
-            $name = $token->getValue();
             $this->stream->expect(Token::T_ASSIGN);
             $value = $this->parseExpression();
 
-            return new Node\AssignNode([$name => $value], true);
+            return new Node\AssignNode($this->convertToNode($token), $value, true);
         }
 
         $this->stream->rewind(); // ...
@@ -418,13 +423,21 @@ class Parser
         return $this->parseExpression();
     }
 
-    private function parseTableExpression(Token $var)
+    private function parseTableExpression(Node\Node $table)
     {
         $this->stream->expect(Token::T_LEFT_BRACKET);
-        $key = $this->parseExpression();
+        $index = $this->parseExpression();
         $this->stream->expect(Token::T_RIGHT_BRACKET);
 
-        return new Node\IndexNode($var->getValue(), $key);
+        return new Node\TableIndexNode($table, $index);
+    }
+
+    private function parseDotExpression(Node\Node $table)
+    {
+        $this->stream->expect(Token::T_DOT);
+        $key = $this->stream->expect(Token::T_NAME);
+
+        return new Node\TableIndexNode($table, new Node\ScalarNode($key->getValue()));
     }
 
     private function convertToNode(Token $token): Node\Node
@@ -433,7 +446,7 @@ class Parser
             return new Node\ScalarNode($token->getScalarValue());
         }
 
-        if ($token->isVariable()) {
+        if ($token->isName()) {
             return new Node\VariableNode($token->getValue());
         }
 

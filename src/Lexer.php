@@ -60,6 +60,7 @@ class Lexer
         ']' => Token::T_RIGHT_BRACKET,
         ',' => Token::T_COMMA,
         ';' => Token::T_SEMI_COLON,
+        '.' => Token::T_DOT,
         '..' => Token::T_DOUBLE_DOT,
     ];
 
@@ -118,7 +119,7 @@ class Lexer
         }
 
         // Operators and punctuations
-        if ($token = $this->match('/(==|~=|<=|<|>=|>|=|\+|-|\*|\/|\(|\)|\.\.|,|{|}|;|\^|\[|\])/A')) {
+        if ($token = $this->match('/(==|~=|<=|<|>=|>|=|\+|-|\*|\/|\(|\)|\.\.|\.|,|{|}|;|\^|\[|\])/A')) {
             return new Token(self::$stringToToken[$token['match']], $token['match'], $token['line'], $token['column']);
         }
 

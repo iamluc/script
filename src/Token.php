@@ -62,6 +62,7 @@ class Token
 
     public const T_COMMA = 'comma';                     // ,
     public const T_SEMI_COLON = 'semi colon';           // ;
+    public const T_DOT = 'dot';                         // .
     public const T_DOUBLE_DOT = 'double dot';           // ..
 
     public const T_NAME = 'name';
@@ -120,7 +121,7 @@ class Token
         return self::T_EOF === $this->type;
     }
 
-    public function isVariable(): bool
+    public function isName(): bool
     {
         return self::T_NAME === $this->type;
     }

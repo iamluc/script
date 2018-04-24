@@ -25,27 +25,45 @@ EOS
 Iamluc\Script\Node\BlockNode {
   -nodes: array:3 [
     0 => Iamluc\Script\Node\AssignNode {
-      -assignments: array:1 [
-        "hello" => Iamluc\Script\Node\ScalarNode {
+      -vars: array:1 [
+        0 => Iamluc\Script\Node\VariableNode {
+          -variable: "hello"
+        }
+      ]
+      -values: array:1 [
+        0 => Iamluc\Script\Node\ScalarNode {
           -value: "Salut"
         }
       ]
       -local: false
     }
     1 => Iamluc\Script\Node\AssignNode {
-      -assignments: array:1 [
-        "world" => Iamluc\Script\Node\ScalarNode {
+      -vars: array:1 [
+        0 => Iamluc\Script\Node\VariableNode {
+          -variable: "world"
+        }
+      ]
+      -values: array:1 [
+        0 => Iamluc\Script\Node\ScalarNode {
           -value: "le monde !"
         }
       ]
       -local: false
     }
     2 => Iamluc\Script\Node\AssignNode {
-      -assignments: array:2 [
-        "mult1" => Iamluc\Script\Node\ScalarNode {
+      -vars: array:2 [
+        0 => Iamluc\Script\Node\VariableNode {
+          -variable: "mult1"
+        }
+        1 => Iamluc\Script\Node\VariableNode {
+          -variable: "mult2"
+        }
+      ]
+      -values: array:2 [
+        0 => Iamluc\Script\Node\ScalarNode {
           -value: 123.0
         }
-        "mult2" => Iamluc\Script\Node\ScalarNode {
+        1 => Iamluc\Script\Node\ScalarNode {
           -value: "abc"
         }
       ]
@@ -81,8 +99,13 @@ Iamluc\Script\Node\BlockNode {
       -if: Iamluc\Script\Node\BlockNode {
         -nodes: array:1 [
           0 => Iamluc\Script\Node\AssignNode {
-            -assignments: array:1 [
-              "res" => Iamluc\Script\Node\ScalarNode {
+            -vars: array:1 [
+              0 => Iamluc\Script\Node\VariableNode {
+                -variable: "res"
+              }
+            ]
+            -values: array:1 [
+              0 => Iamluc\Script\Node\ScalarNode {
                 -value: "OK"
               }
             ]
@@ -94,8 +117,13 @@ Iamluc\Script\Node\BlockNode {
       -else: Iamluc\Script\Node\BlockNode {
         -nodes: array:1 [
           0 => Iamluc\Script\Node\AssignNode {
-            -assignments: array:1 [
-              "res" => Iamluc\Script\Node\ScalarNode {
+            -vars: array:1 [
+              0 => Iamluc\Script\Node\VariableNode {
+                -variable: "res"
+              }
+            ]
+            -values: array:1 [
+              0 => Iamluc\Script\Node\ScalarNode {
                 -value: "KO"
               }
             ]

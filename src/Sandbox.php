@@ -6,9 +6,6 @@ use Iamluc\Script\Exception\BreakException;
 use Iamluc\Script\Exception\CodeFlowException;
 use Iamluc\Script\Exception\GotoException;
 use Iamluc\Script\Exception\ReturnException;
-use Iamluc\Script\Lib\BasicLib;
-use Iamluc\Script\Node\AssignNode;
-use Iamluc\Script\Node\LabelNode;
 
 class Sandbox
 {
@@ -34,7 +31,9 @@ class Sandbox
             throw new \LogicException('"goto" not catched. Sandbox has a bug!');
         }
 
-        return $returnSet->first(); // FIXME: return an ExecutionResult with all results, output, script scope ?
+        $first = $returnSet->first(); // FIXME: return an ExecutionResult with all results, output, script scope ?
+
+        return $first instanceof Table ? $first->toArray() : $first;
     }
 
     public function getGlobals(): array
@@ -51,7 +50,8 @@ class Sandbox
     {
         $scope = new Scope();
 
-        (new BasicLib())->register($scope, $this->output);
+        (new Lib\BasicLib())->register($scope, $this->output);
+        (new Lib\IoLib())->register($scope, $this->output);
 
         return $scope;
     }
@@ -74,7 +74,7 @@ class Sandbox
 blockstart:
         foreach ($block->getNodes() as $node) {
             if (null !== $target) {
-                if (!$node instanceof LabelNode || $node->getName() !== $target) {
+                if (!$node instanceof Node\LabelNode || $node->getName() !== $target) {
                     continue;
                 }
 
@@ -132,7 +132,7 @@ blockstart:
             return $this->scopeStack->getVariable($node->getVariable());
         }
 
-        if ($node instanceof Node\IndexNode) {
+        if ($node instanceof Node\TableIndexNode) {
             return $this->evaluateIndexNode($node);
         }
 
@@ -315,28 +315,48 @@ blockstart:
      */
     private function evaluateAssignNode(Node\AssignNode $node)
     {
-        $resolvedValues = $this->evaluateExpressionList(array_filter(array_values($node->getAssignments())));
+        $resolvedValues = $this->evaluateExpressionList(array_filter($node->getValues()));
 
         $assignments = [];
-        foreach ($node->getAssignments() as $name => $value) {
-            $assignments[$name] = array_shift($resolvedValues);
+        foreach ($node->getVariables() as $var) {
+            if ($var instanceof Node\VariableNode) { // Simple variable
+                $assignments[$var->getVariable()] = array_shift($resolvedValues);
+            } elseif ($var instanceof Node\TableIndexNode) {
+                $table = $this->resolveTableAssign($var);
+                $index = $this->evaluateNode($var->getIndex());
+                $table->add(array_shift($resolvedValues), $index);
+            } else {
+                throw new \LogicException(sprintf('Expected VariableNode or TableIndexNode, got "%s"', get_class($var)));
+            }
         }
 
         $this->scopeStack->setVariables($assignments, $node->isLocal());
     }
 
+    private function resolveTableAssign(Node\TableIndexNode $index)
+    {
+        $var = $index->getTable();
+        if ($var instanceof Node\TableIndexNode) {
+            $var = $this->resolveTableAssign($var);
+        }
+
+        return $this->scopeStack->getVariable($var->getVariable());
+    }
+
     private function evaluateCallNode(Node\CallNode $call, $firstOnly = true)
     {
-        $function = $this->scopeStack->getFunction($call->getFunctionName());
+        $function = $this->evaluateNode($call->getFunction());
         $resolvedValues = $this->evaluateExpressionList($call->getArguments());
+
+        if ($function instanceof Node\FunctionDefinition\PhpFunctionNode) {
+            $res = call_user_func($function->getCallable(), ...array_values($resolvedValues));
+
+            return new ReturnSet($res);
+        }
 
         $args = [];
         foreach ($function->getArguments() as $i => $name) {
             $args[$name] = array_shift($resolvedValues);
-        }
-
-        if ($function instanceof Node\FunctionDefinition\PhpFunctionNode) {
-            return call_user_func($function->getCallable(), ...array_values($args));
         }
 
         $set = $this->evaluateBlockNode($function->getBlock(), true, new Scope($args));
@@ -372,28 +392,31 @@ blockstart:
 
     private function evaluateTableNode(Node\TableNode $node)
     {
-        $index = 0;
-        $table = [];
+        $table = new Table();
         $extra = [];
         foreach ($node->getFields() as $field) {
             $extra = [];
-            if ($field instanceof AssignNode) {
-                foreach ($field->getAssignments() as $name => $value) {
-                    $table[$name] = $this->evaluateNode($value);
+            if ($field instanceof Node\AssignNode) {
+                $values = $field->getValues();
+                foreach ($field->getVariables() as $name) {
+                    $name = $name->getVariable();
+                    $value = $this->evaluateNode(array_shift($values));
+
+                    $table->add($value, $name);
                 }
             } elseif ($field instanceof Node\CallNode) {
                 $returnSet = $this->evaluateCallNode($field, false);
                 $extra = $returnSet->extra();
 
-                $table[++$index] = $returnSet->first();
+                $table->add($returnSet->first());
             } else {
-                $table[++$index] = $this->evaluateNode($field);
+                $table->add($this->evaluateNode($field));
             }
         }
 
         if ($extra) {
             foreach ($extra as $value) {
-                $table[++$index] = $value;
+                $table->add($value);
             }
         }
 
@@ -478,17 +501,19 @@ blockstart:
         $this->evaluateBlockNode($node->getBlock());
     }
 
-    private function evaluateIndexNode(Node\IndexNode $node)
+    private function evaluateIndexNode(Node\TableIndexNode $node)
     {
-        $var = $this->scopeStack->getVariable($node->getVariable());
+        $table = $this->evaluateNode($node->getTable());
+        if (!$table instanceof Table) {
+            $base = $node->getTable();
+            $path = $base instanceof Node\VariableNode ? 'variable "'.$base->getVariable().'"' : 'field "'.$this->evaluateNode($base->getIndex()).'"';
 
-        if (!is_array($var)) {
-            throw new \LogicException(sprintf('Attempt to index a nil value "%s"', $node->getVariable()));
+            throw new \LogicException(sprintf('Attempt to index a %s value (%s)', $this->getResolvedType($table), $path));
         }
 
-        $key = $this->evaluateNode($node->getKey());
+        $index = $this->evaluateNode($node->getIndex());
 
-        return $var[$key] ?? null;
+        return $table->get($index);
     }
 
     private function assertNumbers($left, $right)

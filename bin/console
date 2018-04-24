@@ -1,0 +1,16 @@
+#!/usr/bin/env php
+<?php
+
+require __DIR__.'/../vendor/autoload.php';
+
+$parser = new \Iamluc\Script\Parser();
+$sandbox = new \Iamluc\Script\Sandbox();
+
+$ast = $parser->parse($argv[1]);
+$res = $sandbox->eval($ast);
+
+echo $sandbox->getOutput();
+
+if (null !== $res) {
+    echo $res."\n";
+}

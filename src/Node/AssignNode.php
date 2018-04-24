@@ -4,18 +4,39 @@ namespace Iamluc\Script\Node;
 
 class AssignNode extends Node
 {
-    private $assignments;
+    private $vars;
+    private $values;
     private $local;
 
-    public function __construct(array $assignments, bool $local)
+    public function __construct($variables, $values, bool $local)
     {
-        $this->assignments = $assignments;
+        if (!\is_array($variables)) {
+            $variables = [$variables];
+        }
+
+        if (!\is_array($values)) {
+            $values = [$values];
+        }
+
+        $this->vars = $variables;
+        $this->values = $values;
         $this->local = $local;
     }
 
-    public function getAssignments(): array
+    /**
+     * @return Node[]
+     */
+    public function getVariables(): array
     {
-        return $this->assignments;
+        return $this->vars;
+    }
+
+    /**
+     * @return Node[]
+     */
+    public function getValues(): array
+    {
+        return $this->values;
     }
 
     public function isLocal(): bool

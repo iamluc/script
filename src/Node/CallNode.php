@@ -4,18 +4,18 @@ namespace Iamluc\Script\Node;
 
 class CallNode extends Node
 {
-    private $functionName;
+    private $function;
     private $arguments;
 
-    public function __construct(string $functionName, array $arguments)
+    public function __construct(Node $function, array $arguments)
     {
-        $this->functionName = $functionName;
+        $this->function = $function;
         $this->arguments = $arguments;
     }
 
-    public function getFunctionName()
+    public function getFunction(): Node
     {
-        return $this->functionName;
+        return $this->function;
     }
 
     /**

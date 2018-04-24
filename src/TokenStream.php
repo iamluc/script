@@ -63,8 +63,8 @@ class TokenStream
         return $this->next()->isScalar();
     }
 
-    public function nextIsVariable(): bool
+    public function nextIsName(): bool
     {
-        return $this->next()->isVariable();
+        return $this->next()->isName();
     }
 }
