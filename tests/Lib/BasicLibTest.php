@@ -20,7 +20,7 @@ class BasicLibTest extends TestCase
         $result = $sandbox->eval($block);
 
         $this->assertEquals($expectedResult, $result);
-        $this->assertEquals($expectedGlobals, $sandbox->getGlobals());
+        $this->assertEquals($expectedGlobals, $sandbox->getVariables());
         $this->assertEquals($expectedOutput, $sandbox->getOutput());
     }
 

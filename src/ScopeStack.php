@@ -11,13 +11,13 @@ class ScopeStack
     private $index = -1;
     private $firstWritable;
 
-    public function __construct(array $readOnlyScopes = [], Scope $writableScope = null)
+    public function __construct(Scope $global = null, Scope $script = null)
     {
-        foreach ($readOnlyScopes as $scope) {
-            $this->push($scope);
+        if ($global) {
+            $this->push($global);
         }
 
-        $this->push($writableScope ?: new Scope());
+        $this->push($script ?: new Scope());
 
         $this->firstWritable = $this->index;
     }
@@ -40,49 +40,64 @@ class ScopeStack
         unset($this->stack[$this->index--]);
     }
 
-    public function setVariables(array $vars, $local = false)
+    public function setMulti(array $vars, $local = false)
     {
         foreach ($vars as $name => $value) {
-            $this->setVariable($name, $value, $local);
+            $this->set($name, $value, $local);
         }
     }
 
-    public function setVariable($name, $value, $local = false)
+    public function set($name, $value, $local = false): void
     {
         if ($local) {
-            return $this->current()->setVariable($name, $value);
+            $this->current()->add($value, $name);
+
+            return;
         }
 
         for ($i = $this->index; $i > $this->firstWritable; $i--) {
             $scope = $this->stack[$i];
-            if ($scope->hasVariable($name)) {
-                return $scope->setVariable($name, $value);
+            if ($scope->has($name)) {
+                $scope->add($value, $name);
+
+                return;
             }
         }
 
-        return $this->first()->setVariable($name, $value);
+        $this->first()->add($value, $name);
     }
 
-    public function getVariable($name)
+    public function get($name)
     {
         for ($i = $this->index; $i >= 0; $i--) {
             $scope = $this->stack[$i];
-            if ($scope->hasVariable($name)) {
-                return $scope->getVariable($name);
+            if ($scope->has($name)) {
+                return $scope->get($name);
             }
         }
 
         return null;
     }
 
-    public function getVariables($withFunctions = false)
+    public function all(): array
     {
-        return $this->current()->getVariables($withFunctions);
+        $vars = [];
+        foreach ($this->current()->all() as $index => $value) {
+            if ($value instanceof Table) {
+                $value = $value->toArray();
+            }
+
+            $vars[$index] = $value;
+        }
+
+        return array_filter($vars, function ($val) {
+            return !$val instanceof Node\FunctionDefinition\FunctionDefinitionInterface;
+        });
     }
 
     public function getFunction($name): Node\FunctionDefinition\FunctionDefinitionInterface
     {
-        $func = $this->getVariable($name);
+        $func = $this->get($name);
 
         if (!$func instanceof Node\FunctionDefinition\FunctionDefinitionInterface) {
             throw new \LogicException(sprintf('Function "%s" is not defined.', $name));

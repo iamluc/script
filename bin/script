@@ -6,7 +6,12 @@ require __DIR__.'/../vendor/autoload.php';
 $parser = new \Iamluc\Script\Parser();
 $sandbox = new \Iamluc\Script\Sandbox();
 
-$ast = $parser->parse($argv[1]);
+$script = $argv[1];
+if (is_readable($script)) {
+    $script = file_get_contents($script);
+}
+
+$ast = $parser->parse($script);
 $res = $sandbox->eval($ast);
 
 echo $sandbox->getOutput();

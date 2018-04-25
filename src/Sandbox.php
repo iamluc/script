@@ -1,4 +1,6 @@
-<?php
+<?php /** @noinspection PhpUnhandledExceptionInspection */
+
+/** @noinspection ExceptionsAnnotatingAndHandlingInspection */
 
 namespace Iamluc\Script;
 
@@ -17,9 +19,7 @@ class Sandbox
     public function eval(Node\BlockNode $main)
     {
         $this->output = new Output();
-        $this->scopeStack = new ScopeStack([
-            $this->createLibrariesScope(),
-        ]);
+        $this->scopeStack = new ScopeStack($this->createGlobalScope());
 
         try {
             $returnSet = $this->evaluateBlockNode($main, true);
@@ -36,9 +36,9 @@ class Sandbox
         return $first instanceof Table ? $first->toArray() : $first;
     }
 
-    public function getGlobals(): array
+    public function getVariables(): array
     {
-        return $this->scopeStack->getVariables();
+        return $this->scopeStack->all();
     }
 
     public function getOutput(): Output
@@ -46,12 +46,14 @@ class Sandbox
         return $this->output;
     }
 
-    private function createLibrariesScope(): Scope
+    private function createGlobalScope(): Scope
     {
         $scope = new Scope();
+        $scope->add($scope, '_G');
 
         (new Lib\BasicLib())->register($scope, $this->output);
         (new Lib\IoLib())->register($scope, $this->output);
+        (new Lib\TableLib())->register($scope, $this->output);
 
         return $scope;
     }
@@ -129,7 +131,7 @@ blockstart:
         }
 
         if ($node instanceof Node\VariableNode) {
-            return $this->scopeStack->getVariable($node->getVariable());
+            return $this->scopeStack->get($node->getVariable());
         }
 
         if ($node instanceof Node\TableIndexNode) {
@@ -172,8 +174,8 @@ blockstart:
             return $this->evaluateForNode($node);
         }
 
-        if ($node instanceof Node\ForeachNode) {
-            return $this->evaluateForeachNode($node);
+        if ($node instanceof Node\ForInNode) {
+            return $this->evaluateForInNode($node);
         }
 
         if ($node instanceof Node\CallNode) {
@@ -292,18 +294,21 @@ blockstart:
         }
     }
 
-    // FIXME: not tested
-    private function evaluateForeachNode(Node\ForeachNode $node)
+    private function evaluateForInNode(Node\ForInNode $node)
     {
         $iterator = $this->evaluateNode($node->getExpression());
         if (!is_iterable($iterator)) {
             throw new \LogicException('Result of expression in "for in" is not iterable.');
         }
 
-        $values = is_array($iterator) ? $iterator : iterator_to_array($iterator);
-        foreach ($values as $value) {
+        foreach ($iterator as $index => $value) {
             try {
-                $this->evaluateBlockNode($node->getBlock(), false, new Scope([$node->getVariable() => $value]));
+                $vars = [$node->getIndexVariable() => $index];
+                if (null !== $node->getValueVariable()) {
+                    $vars[$node->getValueVariable()] = $value;
+                }
+
+                $this->evaluateBlockNode($node->getBlock(), false, new Scope($vars));
             } catch (BreakException $break) {
                 return;
             }
@@ -330,7 +335,7 @@ blockstart:
             }
         }
 
-        $this->scopeStack->setVariables($assignments, $node->isLocal());
+        $this->scopeStack->setMulti($assignments, $node->isLocal());
     }
 
     private function resolveTableAssign(Node\TableIndexNode $index)
@@ -340,18 +345,22 @@ blockstart:
             $var = $this->resolveTableAssign($var);
         }
 
-        return $this->scopeStack->getVariable($var->getVariable());
+        return $this->scopeStack->get($var->getVariable());
     }
 
     private function evaluateCallNode(Node\CallNode $call, $firstOnly = true)
     {
         $function = $this->evaluateNode($call->getFunction());
+        if (!$function instanceof Node\FunctionDefinition\FunctionDefinitionInterface) {
+            throw new \LogicException(sprintf('Attempt to call a %s value', self::getType($function)));
+        }
+
         $resolvedValues = $this->evaluateExpressionList($call->getArguments());
 
         if ($function instanceof Node\FunctionDefinition\PhpFunctionNode) {
             $res = call_user_func($function->getCallable(), ...array_values($resolvedValues));
 
-            return new ReturnSet($res);
+            return $firstOnly ? $res : new ReturnSet($res);
         }
 
         $args = [];
@@ -490,7 +499,7 @@ blockstart:
             case 'not':
                 $value = $this->evaluateNode($node->getValue());
 
-                return is_bool($value) ? !$value : false;
+                return (is_bool($value) || null === $value) ? !$value : false;
         }
 
         throw new \LogicException(sprintf('Cannot evaluate unary node with operator "%s"', $node->getOperator()));
@@ -508,7 +517,7 @@ blockstart:
             $base = $node->getTable();
             $path = $base instanceof Node\VariableNode ? 'variable "'.$base->getVariable().'"' : 'field "'.$this->evaluateNode($base->getIndex()).'"';
 
-            throw new \LogicException(sprintf('Attempt to index a %s value (%s)', $this->getResolvedType($table), $path));
+            throw new \LogicException(sprintf('Attempt to index a %s value (%s)', self::getType($table), $path));
         }
 
         $index = $this->evaluateNode($node->getIndex());
@@ -519,13 +528,21 @@ blockstart:
     private function assertNumbers($left, $right)
     {
         if (!is_numeric($left) || !is_numeric($right)) {
-            throw new \LogicException(sprintf('Attempt to compare %s with %s', $this->getResolvedType($right), $this->getResolvedType($left)));
+            throw new \LogicException(sprintf('Attempt to compare %s with %s', self::getType($right), self::getType($left)));
         }
     }
 
-    private function getResolvedType($left): string
+    public static function getType($subject): string
     {
-        return strtr(gettype($left), [
+        if ($subject instanceof Table) {
+            return 'table';
+        }
+
+        if ($subject instanceof Node\FunctionDefinition\FunctionDefinitionInterface) {
+            return 'function';
+        }
+
+        return strtr(gettype($subject), [
             'double' => 'number',
             'NULL' => 'nil',
         ]);

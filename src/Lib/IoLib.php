@@ -11,7 +11,7 @@ class IoLib implements LibInterface
 {
     public function register(Scope $scope, Output $output)
     {
-        $scope->setVariables([
+        $scope->setMulti([
             'io' => new Table([
                 'write' => new PhpFunctionNode(function (...$str) use ($output) {
                     $output->write(implode('', $str));

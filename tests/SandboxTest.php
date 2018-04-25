@@ -84,9 +84,11 @@ new line]]', "first line\nnew line"];
 
         yield ['not true', false];
         yield ['not false', true];
+        yield ['not zzz', true];
+        yield ['not nil', true];
         yield ['not 0', false];
         yield ['not 12', false];
-        yield ['not 12', false];
+        yield ['not "12"', false];
 
         // Concatenation
         yield ['"Hi".." my ".."friend"', 'Hi my friend'];
@@ -235,14 +237,14 @@ new line"', '/Unable to tokenize the stream near/']; // FIXME: Should be "Unfini
         $sandbox = new Sandbox();
         $result = $sandbox->eval($parser->parse($script));
 
-        $this->assertEquals($expectedGlobals, $sandbox->getGlobals());
+        $this->assertEquals($expectedGlobals, $sandbox->getVariables());
         $this->assertEquals($expectedResult, $result);
     }
 
     public function provideAssign()
     {
         yield ['val = true', ['val' => true]];
-        yield ['val = TRUE', ['val' => null]];
+        yield ['val = TRUE', []];
         yield ['val = "double quoted"', ['val' => 'double quoted']];
         yield ["val = 'single quoted'", ['val' => 'single quoted']];
         yield ['val = "double \"!!\" \'quoted\'"', ['val' => 'double "!!" \'quoted\'']];
@@ -299,7 +301,6 @@ EOS
             , [
                 'x' => 'x',
                 'y' => 'y',
-                'missing' => null,
             ]
         ];
 
@@ -384,7 +385,6 @@ EOS
             , [
                 'a' => 'first',
                 'b' => 'second',
-                'c' => null,
             ]
         ];
 
@@ -397,7 +397,6 @@ EOS
             , [
                 'a' => 'first',
                 'b' => 'deuz',
-                'c' => null,
             ]
         ];
 
@@ -423,7 +422,7 @@ EOS
         $block = $parser->parse($script);
         $result = $sandbox->eval($block);
 
-        $this->assertEquals($expectedGlobals, $sandbox->getGlobals());
+        $this->assertEquals($expectedGlobals, $sandbox->getVariables());
         $this->assertEquals($expectedResult, $result);
     }
 
@@ -628,7 +627,7 @@ EOS
         $block = $parser->parse($script);
         $result = $sandbox->eval($block);
 
-        $this->assertEquals($expectedGlobals, $sandbox->getGlobals());
+        $this->assertEquals($expectedGlobals, $sandbox->getVariables());
         $this->assertEquals($expectedResult, $result);
     }
 
@@ -708,7 +707,7 @@ EOS
         $result = $sandbox->eval($block);
 
         $this->assertEquals($expectedResult, $result);
-        $this->assertEquals($expectedGlobals, $sandbox->getGlobals());
+        $this->assertEquals($expectedGlobals, $sandbox->getVariables());
         $this->assertEquals($expectedOutput, $sandbox->getOutput());
     }
 
@@ -899,7 +898,7 @@ EOS;
 
         $this->assertEquals([
             'x' => 10,
-        ], $sandbox->getGlobals());
+        ], $sandbox->getVariables());
         $this->assertEquals(null, $result);
         $this->assertEquals('10
 12
@@ -954,7 +953,7 @@ EOS;
             'closure_1' => 'closure global',
             'closure_2' => 'closure local',
             'closure_3' => 'closure global',
-        ], $sandbox->getGlobals());
+        ], $sandbox->getVariables());
         $this->assertEquals(null, $result);
     }
 
@@ -980,7 +979,7 @@ EOS;
 
         $this->assertEquals([
             'x' => 105,
-        ], $sandbox->getGlobals());
+        ], $sandbox->getVariables());
         $this->assertEquals(null, $result);
     }
 
@@ -1004,7 +1003,7 @@ EOS;
         $this->assertEquals([
             'x' => 4,
             'toto' => 'cool',
-        ], $sandbox->getGlobals());
+        ], $sandbox->getVariables());
         $this->assertEquals(null, $result);
     }
 
@@ -1028,14 +1027,14 @@ EOS;
 
         $this->assertEquals([
             'x' => 6,
-        ], $sandbox->getGlobals());
+        ], $sandbox->getVariables());
         $this->assertEquals('Ok', $result);
     }
 
     /**
      * @dataProvider provideFor
      */
-    public function testFor($script, $expectedGlobals, $expectedResult = null)
+    public function testFor($script, $expectedGlobals, $expectedResult = null, $expectedOutput = '')
     {
         $parser = new Parser();
         $sandbox = new Sandbox();
@@ -1043,8 +1042,9 @@ EOS;
         $block = $parser->parse($script);
         $result = $sandbox->eval($block);
 
-        $this->assertEquals($expectedGlobals, $sandbox->getGlobals());
+        $this->assertEquals($expectedGlobals, $sandbox->getVariables());
         $this->assertEquals($expectedResult, $result);
+        $this->assertEquals($expectedOutput, (string) $sandbox->getOutput());
     }
 
     public function provideFor()
@@ -1112,29 +1112,52 @@ EOS
         yield [
             'for i=1,0,-0.25 do print(i) end',
             [],
-            null,
-            '1.0
+            null, // FIXME: should be 1.0, not 1, and 0.0
+            '1
 0.75
 0.5
 0.25
-0.0
+0
+',
+        ];
+
+        yield [
+            <<<EOS
+tab={a = 'val_a', b = nil, 'val_c'}
+for key, val in pairs(tab) do
+    print(key, val)
+end
+EOS
+            ,
+            [
+                'tab' => [
+                    1 => 'val_c',
+                    'a' => 'val_a',
+                ]
+            ],
+            null, // FIXME: sort is wrong
+            'a	val_a
+1	val_c
 ',
         ];
 
 //        yield [
 //            <<<EOS
-//function it()
-//    return 12
-//end
-//
-//res = 0
-//for v in it() do
-//    res = res + v
+//tab={a = 'val_a', b = nil, 'val_c'}
+//for key, val in ipairs(tab) do
+//    print(key, val)
 //end
 //EOS
-//            , [
-//                'res' => 8,
+//            ,
+//            [
+//                'tab' => [
+//                    'a' => 'val_a',
+//                    1 => 'val_c',
+//                ]
 //            ],
+//            null,
+//            '1	val_c
+//',
 //        ];
     }
 
@@ -1149,7 +1172,7 @@ EOS
         $block = $parser->parse($script);
         $result = $sandbox->eval($block);
 
-        $this->assertEquals($expectedGlobals, $sandbox->getGlobals());
+        $this->assertEquals($expectedGlobals, $sandbox->getVariables());
         $this->assertEquals($expectedResult, $result);
     }
 

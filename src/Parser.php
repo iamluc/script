@@ -228,18 +228,23 @@ class Parser
 
     private function parseFor()
     {
-        $var = $this->stream->expect(Token::T_NAME);
-        $type = $this->stream->expect([Token::T_ASSIGN, Token::T_IN, Token::T_COMMA]);
+        $firstVar = $this->stream->expect(Token::T_NAME)->getValue();
+        $secondVar = null;
+        if ($this->stream->nextIs(Token::T_COMMA)) {
+            $this->stream->expect(Token::T_COMMA);
 
-        if ($type->is(Token::T_ASSIGN)) {
+            $secondVar = $this->stream->expect(Token::T_NAME)->getValue();
+        }
+
+        $type = $this->stream->expect([Token::T_ASSIGN, Token::T_IN]);
+
+        if ($type->is(Token::T_IN)) {
+            $expr = $this->parseExpression();
+        } elseif ($type->is(Token::T_ASSIGN)) {
             $numArgs = $this->parseExpressionList();
             if (\count($numArgs) < 2 || \count($numArgs) > 3) {
                 throw new \LogicException(sprintf('Numeric "for" requires 2 or 3 arguments. Got %d.', \count($numArgs)));
             }
-        } else {
-            // FIXME: support "key, value" format
-
-            $expr = $this->parseExpression();
         }
 
         $this->stream->expect(Token::T_DO);
@@ -248,10 +253,10 @@ class Parser
         $this->stream->expect(Token::T_END);
 
         if ($type->is(Token::T_ASSIGN)) {
-            return new Node\ForNode($var->getValue(), $body, $numArgs[0], $numArgs[1], $numArgs[2] ?? new Node\ScalarNode(1));
+            return new Node\ForNode($firstVar, $body, $numArgs[0], $numArgs[1], $numArgs[2] ?? new Node\ScalarNode(1));
         }
 
-        return new Node\ForeachNode($var->getValue(), $expr);
+        return new Node\ForInNode($firstVar, $secondVar, $expr, $body);
     }
 
     private function parseDo()
