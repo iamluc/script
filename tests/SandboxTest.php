@@ -1042,7 +1042,9 @@ EOS;
         $block = $parser->parse($script);
         $result = $sandbox->eval($block);
 
-        $this->assertEquals($expectedGlobals, $sandbox->getVariables());
+        if (null !== $expectedGlobals) {
+            $this->assertEquals($expectedGlobals, $sandbox->getVariables());
+        }
         $this->assertEquals($expectedResult, $result);
         $this->assertEquals($expectedOutput, (string) $sandbox->getOutput());
     }
@@ -1159,6 +1161,52 @@ EOS
 //            '1	val_c
 //',
 //        ];
+
+        yield [
+            <<<EOS
+function square(state,n) if n<state then n=n+1 return n,n*n end end
+for i,n in square,5,0 do print(i,n) end
+EOS
+            ,
+            [],
+            null,
+            '1	1
+2	4
+3	9
+4	16
+5	25
+',
+        ];
+
+        yield [
+            <<<EOS
+function square(state,n) if n == nil then n = 0 end if n<state then n=n+1 return n,n*n end end
+for i,n in square,3 do print(i,n) end
+EOS
+            ,
+            [],
+            null,
+            '1	1
+2	4
+3	9
+',
+        ];
+
+        yield [
+            <<<EOS
+a = {}
+a.square = function (state,n) if n<state then n=n+1 return n,n*n end end
+for i,n in a.square,4,0 do print(i,n) end
+EOS
+            ,
+            null,
+            null,
+            '1	1
+2	4
+3	9
+4	16
+',
+        ];
     }
 
     /**

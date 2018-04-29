@@ -239,7 +239,7 @@ class Parser
         $type = $this->stream->expect([Token::T_ASSIGN, Token::T_IN]);
 
         if ($type->is(Token::T_IN)) {
-            $expr = $this->parseExpression();
+            $expr = $this->parseExpressionList();
         } elseif ($type->is(Token::T_ASSIGN)) {
             $numArgs = $this->parseExpressionList();
             if (\count($numArgs) < 2 || \count($numArgs) > 3) {

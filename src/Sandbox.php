@@ -1,6 +1,4 @@
-<?php /** @noinspection PhpUnhandledExceptionInspection */
-
-/** @noinspection ExceptionsAnnotatingAndHandlingInspection */
+<?php
 
 namespace Iamluc\Script;
 
@@ -8,6 +6,7 @@ use Iamluc\Script\Exception\BreakException;
 use Iamluc\Script\Exception\CodeFlowException;
 use Iamluc\Script\Exception\GotoException;
 use Iamluc\Script\Exception\ReturnException;
+use Iamluc\Script\Node\ResolvedNode;
 
 class Sandbox
 {
@@ -126,7 +125,7 @@ blockstart:
      */
     private function evaluateNode(Node\Node $node)
     {
-        if ($node instanceof Node\ScalarNode) {
+        if ($node instanceof Node\ScalarNode || $node instanceof ResolvedNode) {
             return $node->getValue();
         }
 
@@ -296,7 +295,15 @@ blockstart:
 
     private function evaluateForInNode(Node\ForInNode $node)
     {
-        $iterator = $this->evaluateNode($node->getExpression());
+        $exprList = $node->getExpressionList();
+
+        $expr = $exprList[0];
+
+        if ($expr instanceof Node\VariableNode || $expr instanceof Node\TableIndexNode) {
+            return $this->evaluateForInCustomIterator($node);
+        }
+
+        $iterator = $this->evaluateNode($expr);
         if (!is_iterable($iterator)) {
             throw new \LogicException('Result of expression in "for in" is not iterable.');
         }
@@ -312,6 +319,37 @@ blockstart:
             } catch (BreakException $break) {
                 return;
             }
+        }
+    }
+
+    private function evaluateForInCustomIterator(Node\ForInNode $node)
+    {
+        $exprList = $node->getExpressionList();
+
+        $func = $exprList[0];
+        $state = $exprList[1] ?? new Node\ScalarNode(null);
+        $key = $exprList[2] ?? new Node\ScalarNode(null);
+
+        while (true) {
+            $call = new Node\CallNode($func, [$state, $key]);
+            $res = $this->evaluateCallNode($call, false);
+
+            $nextKeyVal = $res->first();
+            if (null === $nextKeyVal) {
+                break;
+            }
+
+            $extra = $res->extra();
+            $val = $extra[0] ?? null;
+
+            $vars = [$node->getIndexVariable() => $nextKeyVal];
+            if (null !== $node->getValueVariable()) {
+                $vars[$node->getValueVariable()] = $val;
+            }
+
+            $this->evaluateBlockNode($node->getBlock(), false, new Scope($vars));
+
+            $key = new Node\ResolvedNode($nextKeyVal);
         }
     }
 

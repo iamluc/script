@@ -5,14 +5,14 @@ namespace Iamluc\Script\Node;
 class ForInNode extends Node
 {
     private $indexVariable;
-    private $expression;
+    private $expressionList;
     private $valueVariable;
     private $block;
 
-    public function __construct(string $indexVariable, string $valueVariable = null, Node $expression, BlockNode $block)
+    public function __construct(string $indexVariable, string $valueVariable = null, array $expressionList, BlockNode $block)
     {
         $this->indexVariable = $indexVariable;
-        $this->expression = $expression;
+        $this->expressionList = $expressionList;
         $this->valueVariable = $valueVariable;
         $this->block = $block;
     }
@@ -27,9 +27,12 @@ class ForInNode extends Node
         return $this->valueVariable;
     }
 
-    public function getExpression(): Node
+    /**
+     * @return Node[]
+     */
+    public function getExpressionList(): array
     {
-        return $this->expression;
+        return $this->expressionList;
     }
 
     public function getBlock(): BlockNode
