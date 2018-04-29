@@ -2,8 +2,11 @@
 
 namespace Test\Iamluc\Script;
 
+use Iamluc\Script\Node\FunctionDefinition\FunctionDefinitionInterface;
 use Iamluc\Script\Parser;
 use Iamluc\Script\Sandbox;
+use Iamluc\Script\Scope;
+use Iamluc\Script\Table;
 use PHPUnit\Framework\TestCase;
 
 class SandboxTest extends TestCase
@@ -18,6 +21,10 @@ class SandboxTest extends TestCase
 
         $script = $autoReturn ? 'return '.$script : $script;
         $result = $sandbox->eval($parser->parse($script));
+
+        if ($result instanceof Table) {
+            $result = $this->tableToArray($result);
+        }
 
         $this->assertEquals($expected, $result);
         $this->assertEquals($exptectedOutput, (string) $sandbox->getOutput());
@@ -237,7 +244,7 @@ new line"', '/Unable to tokenize the stream near/']; // FIXME: Should be "Unfini
         $sandbox = new Sandbox();
         $result = $sandbox->eval($parser->parse($script));
 
-        $this->assertEquals($expectedGlobals, $sandbox->getVariables());
+        $this->assertEquals($expectedGlobals, $this->filterGlobals($sandbox->getGlobals()));
         $this->assertEquals($expectedResult, $result);
     }
 
@@ -422,7 +429,7 @@ EOS
         $block = $parser->parse($script);
         $result = $sandbox->eval($block);
 
-        $this->assertEquals($expectedGlobals, $sandbox->getVariables());
+        $this->assertEquals($expectedGlobals, $this->filterGlobals($sandbox->getGlobals()));
         $this->assertEquals($expectedResult, $result);
     }
 
@@ -627,7 +634,7 @@ EOS
         $block = $parser->parse($script);
         $result = $sandbox->eval($block);
 
-        $this->assertEquals($expectedGlobals, $sandbox->getVariables());
+        $this->assertEquals($expectedGlobals, $this->filterGlobals($sandbox->getGlobals()));
         $this->assertEquals($expectedResult, $result);
     }
 
@@ -707,7 +714,7 @@ EOS
         $result = $sandbox->eval($block);
 
         $this->assertEquals($expectedResult, $result);
-        $this->assertEquals($expectedGlobals, $sandbox->getVariables());
+        $this->assertEquals($expectedGlobals, $this->filterGlobals($sandbox->getGlobals()));
         $this->assertEquals($expectedOutput, $sandbox->getOutput());
     }
 
@@ -898,12 +905,46 @@ EOS;
 
         $this->assertEquals([
             'x' => 10,
-        ], $sandbox->getVariables());
+        ], $this->filterGlobals($sandbox->getGlobals()));
         $this->assertEquals(null, $result);
         $this->assertEquals('10
 12
 11
 10
+'
+            , $sandbox->getOutput()
+        );
+    }
+
+    public function testVariableScopeNilAssisgn()
+    {
+        $parser = new Parser();
+        $sandbox = new Sandbox();
+
+        $script = <<<EOS
+a = 'global'
+
+do
+   local a = 'local'
+   do
+     do
+         local a = 'local deeper'
+         a = nil
+         a = 'last!'
+      end
+   end
+
+   print(a)
+end
+
+print(a)
+EOS;
+
+        $block = $parser->parse($script);
+        $result = $sandbox->eval($block);
+
+        $this->assertEquals('local
+global
 '
             , $sandbox->getOutput()
         );
@@ -953,7 +994,7 @@ EOS;
             'closure_1' => 'closure global',
             'closure_2' => 'closure local',
             'closure_3' => 'closure global',
-        ], $sandbox->getVariables());
+        ], $this->filterGlobals($sandbox->getGlobals()));
         $this->assertEquals(null, $result);
     }
 
@@ -979,7 +1020,7 @@ EOS;
 
         $this->assertEquals([
             'x' => 105,
-        ], $sandbox->getVariables());
+        ], $this->filterGlobals($sandbox->getGlobals()));
         $this->assertEquals(null, $result);
     }
 
@@ -1003,7 +1044,7 @@ EOS;
         $this->assertEquals([
             'x' => 4,
             'toto' => 'cool',
-        ], $sandbox->getVariables());
+        ], $this->filterGlobals($sandbox->getGlobals()));
         $this->assertEquals(null, $result);
     }
 
@@ -1027,7 +1068,7 @@ EOS;
 
         $this->assertEquals([
             'x' => 6,
-        ], $sandbox->getVariables());
+        ], $this->filterGlobals($sandbox->getGlobals()));
         $this->assertEquals('Ok', $result);
     }
 
@@ -1043,7 +1084,7 @@ EOS;
         $result = $sandbox->eval($block);
 
         if (null !== $expectedGlobals) {
-            $this->assertEquals($expectedGlobals, $sandbox->getVariables());
+            $this->assertEquals($expectedGlobals, $this->filterGlobals($sandbox->getGlobals()));
         }
         $this->assertEquals($expectedResult, $result);
         $this->assertEquals($expectedOutput, (string) $sandbox->getOutput());
@@ -1220,7 +1261,7 @@ EOS
         $block = $parser->parse($script);
         $result = $sandbox->eval($block);
 
-        $this->assertEquals($expectedGlobals, $sandbox->getVariables());
+        $this->assertEquals($expectedGlobals, $this->filterGlobals($sandbox->getGlobals()));
         $this->assertEquals($expectedResult, $result);
     }
 
@@ -1285,5 +1326,42 @@ return 'OK'
 EOS
             , [], 'OK'
         ];
+    }
+
+    private function filterGlobals(Scope $globals): array
+    {
+        return array_filter($this->tableToArray($globals), function ($val, $key) {
+            if ($val instanceof FunctionDefinitionInterface) {
+                return false;
+            }
+
+            if (in_array($key, ['io', 'table'], true)) {
+                return false;
+            }
+
+            if (is_string($key) && '_' === $key[0]) {
+                return false;
+            }
+
+            return true;
+        }, ARRAY_FILTER_USE_BOTH);
+    }
+
+    private function tableToArray(Table $table): array
+    {
+        $vars = [];
+        foreach ($table->all() as $index => $value) {
+            if ('_G' === $index) {
+                continue;
+            }
+
+            if ($value instanceof Table) {
+                $value = $this->tableToArray($value);
+            }
+
+            $vars[$index] = $value;
+        }
+
+        return $vars;
     }
 }

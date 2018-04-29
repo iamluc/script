@@ -11,7 +11,7 @@ class BasicLibTest extends TestCase
     /**
      * @dataProvider provideBasicLib
      */
-    public function testSBasicLib($script, $expectedGlobals, $expectedResult = null, $expectedOutput = '')
+    public function testBasicLib($script, $expectedResult = null, $expectedOutput = '')
     {
         $parser = new Parser();
         $sandbox = new Sandbox();
@@ -20,7 +20,6 @@ class BasicLibTest extends TestCase
         $result = $sandbox->eval($block);
 
         $this->assertEquals($expectedResult, $result);
-        $this->assertEquals($expectedGlobals, $sandbox->getVariables());
         $this->assertEquals($expectedOutput, $sandbox->getOutput());
     }
 
@@ -31,9 +30,26 @@ class BasicLibTest extends TestCase
 print("salut from ".._VERSION)
 EOS
             ,
-            [],
             null,
             "salut from Lua 5.3\n",
+        ];
+
+        yield [
+            <<<EOS
+print(_G._VERSION)
+print(_G._G._G["_G"]['_G']._VERSION)
+_G['_G']._VERSION = 'Lua 99'
+print(_G._VERSION)
+EOS
+            ,
+            null,
+            <<<EOD
+Lua 5.3
+Lua 5.3
+Lua 99
+
+EOD
+,
         ];
     }
 }

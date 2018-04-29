@@ -9,22 +9,17 @@ class ScopeStack
      */
     private $stack = [];
     private $index = -1;
-    private $firstWritable;
 
-    public function __construct(Scope $global = null, Scope $script = null)
+    public function __construct(Scope $root = null)
     {
-        if ($global) {
-            $this->push($global);
+        if ($root) {
+            $this->push($root);
         }
-
-        $this->push($script ?: new Scope());
-
-        $this->firstWritable = $this->index;
     }
 
     public function push(Scope $scope = null)
     {
-        if (null == $scope) {
+        if (null === $scope) {
             $scope = new Scope();
         }
 
@@ -55,7 +50,7 @@ class ScopeStack
             return;
         }
 
-        for ($i = $this->index; $i > $this->firstWritable; $i--) {
+        for ($i = $this->index; $i >= 0; $i--) {
             $scope = $this->stack[$i];
             if ($scope->has($name)) {
                 $scope->add($value, $name);
@@ -64,7 +59,7 @@ class ScopeStack
             }
         }
 
-        $this->first()->add($value, $name);
+        $this->root()->add($value, $name);
     }
 
     public function get($name)
@@ -79,45 +74,18 @@ class ScopeStack
         return null;
     }
 
-    public function all(): array
+    public function root(): Scope
     {
-        $vars = [];
-        foreach ($this->current()->all() as $index => $value) {
-            if ($value instanceof Table) {
-                $value = $value->toArray();
-            }
-
-            $vars[$index] = $value;
+        if (!isset($this->stack[0])) {
+            throw new \LogicException('There is no scope in stack.');
         }
 
-        return array_filter($vars, function ($val) {
-            return !$val instanceof Node\FunctionDefinition\FunctionDefinitionInterface;
-        });
-    }
-
-    public function getFunction($name): Node\FunctionDefinition\FunctionDefinitionInterface
-    {
-        $func = $this->get($name);
-
-        if (!$func instanceof Node\FunctionDefinition\FunctionDefinitionInterface) {
-            throw new \LogicException(sprintf('Function "%s" is not defined.', $name));
-        }
-
-        return $func;
-    }
-
-    protected function first(): Scope
-    {
-        if (!isset($this->stack[$this->firstWritable])) {
-            throw new \LogicException('There is no writable scope in stack.');
-        }
-
-        return $this->stack[1];
+        return $this->stack[0];
     }
 
     protected function current(): Scope
     {
-        if ($this->index < $this->firstWritable) {
+        if ($this->index < 0) {
             throw new \LogicException('There is no scope in stack.');
         }
 

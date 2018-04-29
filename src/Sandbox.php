@@ -30,14 +30,12 @@ class Sandbox
             throw new \LogicException('"goto" not catched. Sandbox has a bug!');
         }
 
-        $first = $returnSet->first(); // FIXME: return an ExecutionResult with all results, output, script scope ?
-
-        return $first instanceof Table ? $first->toArray() : $first;
+        return $returnSet->first(); // FIXME: return an ExecutionResult with all results, output, globals ?
     }
 
-    public function getVariables(): array
+    public function getGlobals(): ?Scope
     {
-        return $this->scopeStack->all();
+        return $this->scopeStack->root();
     }
 
     public function getOutput(): Output
@@ -365,7 +363,7 @@ blockstart:
             if ($var instanceof Node\VariableNode) { // Simple variable
                 $assignments[$var->getVariable()] = array_shift($resolvedValues);
             } elseif ($var instanceof Node\TableIndexNode) {
-                $table = $this->resolveTableAssign($var);
+                $table = $this->evaluateIndexNode($var, true);
                 $index = $this->evaluateNode($var->getIndex());
                 $table->add(array_shift($resolvedValues), $index);
             } else {
@@ -374,16 +372,6 @@ blockstart:
         }
 
         $this->scopeStack->setMulti($assignments, $node->isLocal());
-    }
-
-    private function resolveTableAssign(Node\TableIndexNode $index)
-    {
-        $var = $index->getTable();
-        if ($var instanceof Node\TableIndexNode) {
-            $var = $this->resolveTableAssign($var);
-        }
-
-        return $this->scopeStack->get($var->getVariable());
     }
 
     private function evaluateCallNode(Node\CallNode $call, $firstOnly = true)
@@ -548,7 +536,7 @@ blockstart:
         $this->evaluateBlockNode($node->getBlock());
     }
 
-    private function evaluateIndexNode(Node\TableIndexNode $node)
+    private function evaluateIndexNode(Node\TableIndexNode $node, $returnTable = false)
     {
         $table = $this->evaluateNode($node->getTable());
         if (!$table instanceof Table) {
@@ -556,6 +544,10 @@ blockstart:
             $path = $base instanceof Node\VariableNode ? 'variable "'.$base->getVariable().'"' : 'field "'.$this->evaluateNode($base->getIndex()).'"';
 
             throw new \LogicException(sprintf('Attempt to index a %s value (%s)', self::getType($table), $path));
+        }
+
+        if ($returnTable) {
+            return $table;
         }
 
         $index = $this->evaluateNode($node->getIndex());

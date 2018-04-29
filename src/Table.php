@@ -69,18 +69,4 @@ class Table
     {
         usort($this->map, $sorter);
     }
-
-    public function toArray(): array
-    {
-        $res = [];
-        foreach ($this->all() as $index => $value) {
-            if ($value instanceof self) {
-                $value = $value->toArray();
-            }
-
-            $res[$index] = $value;
-        }
-
-        return $res;
-    }
 }
