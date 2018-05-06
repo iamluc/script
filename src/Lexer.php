@@ -123,8 +123,20 @@ class Lexer
             return new Token(self::$stringToToken[$token['match']], $token['match'], $token['line'], $token['column']);
         }
 
-        // Numbers
-        if ($token = $this->match('/([0-9]+(?:\.[0-9]+)?)/A')) {
+        /**
+         * Regex from http://php.net/manual/en/language.types.float.php
+         *
+         * LNUM          [0-9]+
+         * DNUM          ([0-9]*[\.]{LNUM}) | ({LNUM}[\.][0-9]*)
+         * EXPONENT_DNUM [+-]?(({LNUM} | {DNUM}) [eE][+-]? {LNUM})
+         */
+        if ($token = $this->match('/((([0-9]+|([0-9]*[\.][0-9]+)|([0-9]+[\.][0-9]*))[eE][+-]?[0-9]+))/A')) {
+            return new Token(Token::T_NUMBER, $token['match'], $token['line'], $token['column']);
+        }
+        if ($token = $this->match('/(([0-9]*[\.][0-9]+)|([0-9]+[\.][0-9]*))/A')) {
+            return new Token(Token::T_NUMBER, $token['match'], $token['line'], $token['column']);
+        }
+        if ($token = $this->match('/([0-9]+)/A')) {
             return new Token(Token::T_NUMBER, $token['match'], $token['line'], $token['column']);
         }
 

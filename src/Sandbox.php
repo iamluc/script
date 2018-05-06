@@ -51,6 +51,8 @@ class Sandbox
         (new Lib\BasicLib())->register($scope, $this->output);
         (new Lib\IoLib())->register($scope, $this->output);
         (new Lib\TableLib())->register($scope, $this->output);
+        (new Lib\MathLib())->register($scope, $this->output);
+        (new Lib\StringLib())->register($scope, $this->output);
 
         return $scope;
     }

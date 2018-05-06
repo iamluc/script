@@ -33,7 +33,6 @@ class SandboxTest extends TestCase
     public function provideExpression()
     {
         // Arithmetic
-        yield ['123', 123];
         yield ['2 + 8 -1', 9];
         yield ['4 * 5', 20];
         yield ['10 + 2 * 2 * 3 / 4', 13];
@@ -51,6 +50,12 @@ class SandboxTest extends TestCase
         yield ['1 - 3 ^ 2', -8];
         yield ['1 ^ - 3 ^ - 2', 1];
         yield ['x=1 return x-3', -2, false];
+
+        // Numbers
+        yield ['123', 123];
+        yield ['0.4', 0.4];
+        yield ['1e-7', 1e-7];
+        yield ['0.4e-2', 0.4e-2];
 
         // Strings
         yield ["'single quote'", 'single quote'];
@@ -1336,7 +1341,7 @@ EOS
                 return false;
             }
 
-            if (in_array($key, ['io', 'table'], true)) {
+            if (in_array($key, ['io', 'table', 'string', 'math'], true)) {
                 return false;
             }
 
