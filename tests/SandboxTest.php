@@ -50,6 +50,7 @@ class SandboxTest extends TestCase
         yield ['-3 ^ 2', -9];
         yield ['1 - 3 ^ 2', -8];
         yield ['1 ^ - 3 ^ - 2', 1];
+        yield ['x=1 return x-3', -2, false];
 
         // Strings
         yield ["'single quote'", 'single quote'];

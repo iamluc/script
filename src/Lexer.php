@@ -129,7 +129,7 @@ class Lexer
         }
 
         // Variables
-        if ($token = $this->match('/([\w-_]+)/A')) {
+        if ($token = $this->match('/([\w_]+)/A')) {
             return new Token(Token::T_NAME, $token['match'], $token['line'], $token['column']);
         }
 
