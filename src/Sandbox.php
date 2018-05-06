@@ -6,7 +6,7 @@ use Iamluc\Script\Exception\BreakException;
 use Iamluc\Script\Exception\CodeFlowException;
 use Iamluc\Script\Exception\GotoException;
 use Iamluc\Script\Exception\ReturnException;
-use Iamluc\Script\Node\ResolvedNode;
+use Iamluc\Script\Extension\ExtensionInterface;
 
 class Sandbox
 {
@@ -14,11 +14,20 @@ class Sandbox
     private $scopeStack;
     /** @var Output */
     private $output;
+    /** @var ExtensionInterface[] */
+    private $extensions;
 
-    public function eval(Node\BlockNode $main)
+    public function eval(Node\BlockNode $main, array $extensions = [])
     {
         $this->output = new Output();
         $this->scopeStack = new ScopeStack($this->createGlobalScope());
+
+        if (!$extensions) {
+            $this->extensions = [
+                new Extension\WatchdogExtension(),
+                new Extension\BlackfireExtension(),
+            ];
+        }
 
         try {
             $returnSet = $this->evaluateBlockNode($main, true);
@@ -33,7 +42,7 @@ class Sandbox
         return $returnSet->first(); // FIXME: return an ExecutionResult with all results, output, globals ?
     }
 
-    public function getGlobals(): ?Scope
+    public function getGlobals(): Scope
     {
         return $this->scopeStack->root();
     }
@@ -123,12 +132,15 @@ blockstart:
      */
     private function evaluateNode(Node\Node $node)
     {
-        if ($node instanceof Node\ScalarNode || $node instanceof ResolvedNode) {
+        if ($node instanceof Node\ScalarNode || $node instanceof Node\ResolvedNode) {
             return $node->getValue();
         }
 
         if ($node instanceof Node\VariableNode) {
-            return $this->scopeStack->get($node->getVariable());
+            $varName = $node->getVariable();
+            $this->dispatch('variable', [$varName]);
+
+            return $this->scopeStack->get($varName);
         }
 
         if ($node instanceof Node\TableIndexNode) {
@@ -383,6 +395,8 @@ blockstart:
 
         $resolvedValues = $this->evaluateExpressionList($call->getArguments());
 
+        $this->dispatch('call', [$function, $resolvedValues]);
+
         if ($function instanceof Node\FunctionDefinition\PhpFunctionNode) {
             $res = call_user_func($function->getCallable(), ...array_values($resolvedValues));
 
@@ -552,6 +566,8 @@ blockstart:
 
         $index = $this->evaluateNode($node->getIndex());
 
+        $this->dispatch('index', [$index]);
+
         return $table->get($index);
     }
 
@@ -576,5 +592,12 @@ blockstart:
             'double' => 'number',
             'NULL' => 'nil',
         ]);
+    }
+
+    private function dispatch($eventName, $args)
+    {
+        foreach ($this->extensions as $extension) {
+            $extension->dispatch($eventName, $args);
+        }
     }
 }
