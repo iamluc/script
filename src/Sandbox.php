@@ -436,7 +436,7 @@ blockstart:
             if ($field instanceof Node\AssignNode) {
                 $values = $field->getValues();
                 foreach ($field->getVariables() as $name) {
-                    $name = $name->getVariable();
+                    $name = $name instanceof Node\VariableNode ? $name->getVariable() : $this->evaluateNode($name);
                     $value = $this->evaluateNode(array_shift($values));
 
                     $table->add($value, $name);

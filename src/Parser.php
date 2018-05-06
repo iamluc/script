@@ -416,6 +416,15 @@ class Parser
     private function parseField()
     {
         $token = $this->stream->peek();
+        if ($token->is(Token::T_LEFT_BRACKET)) { // key with spaces like: "a = { d = 5, [12] = \"foo\", ['chaîne avec espace'] = true }"
+            $key = $this->parseExpression();
+            $this->stream->expect(Token::T_RIGHT_BRACKET);
+            $this->stream->expect(Token::T_ASSIGN);
+            $value = $this->parseExpression();
+
+            return new Node\AssignNode($key, $value, true);
+        }
+
         if ($token->is(Token::T_NAME) && $this->stream->nextIs(Token::T_ASSIGN)) {
             $this->stream->expect(Token::T_ASSIGN);
             $value = $this->parseExpression();

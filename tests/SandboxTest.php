@@ -155,6 +155,26 @@ EOS
             ], false
         ];
 
+        yield [
+            <<<EOS
+{ d = 5, [12] = "foo", ['string with spaces'] = 'coucou' }
+EOS
+            , [
+                'd' => 5,
+                '12' => 'foo',
+                'string with spaces' => 'coucou',
+            ],
+        ];
+
+        yield [
+            <<<EOS
+{['Hum'    .. ' hum'..(1+4)] = 'ok man!'}
+EOS
+            , [
+                'Hum hum5' => 'ok man!',
+            ],
+        ];
+
         // With variables
         yield [
             <<<EOS
