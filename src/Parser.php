@@ -22,7 +22,7 @@ class Parser
         Token::T_LESS_EQUAL => 30,
         Token::T_GREATER_EQUAL => 30,
 
-        Token::T_DOUBLE_DOT => 40,
+        Token::T_DOUBLE_DOT => 40, // Right assoc
 
         Token::T_PLUS => 50,
         Token::T_MINUS => 50,
@@ -165,7 +165,7 @@ class Parser
         ) {
             $operation = $this->stream->peek();
             $newPrecedence = $this->precedenceMap[$operation->getType()];
-            $right = $this->parseExpression($operation->is(Token::T_EXP) ? $newPrecedence - 1 : $newPrecedence);
+            $right = $this->parseExpression($operation->is([Token::T_EXP, Token::T_DOUBLE_DOT]) ? $newPrecedence-1 : $newPrecedence);
 
             $left = new Node\BinaryNode($left, $operation->getValue(), $right);
         }
