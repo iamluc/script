@@ -43,7 +43,7 @@ class Sandbox
         return $this->output;
     }
 
-    private function createGlobalScope(): Scope
+    protected function createGlobalScope(): Scope
     {
         $scope = new Scope();
         $scope->add($scope, '_G');
